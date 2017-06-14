@@ -4,6 +4,7 @@ CWD_BASENAME=${PWD##*/}
 FILES+=("logo.gif")
 FILES+=("logo.png")
 FILES+=("${CWD_BASENAME}.php")
+FILES+=("${CWD_BASENAME}-cron.php")
 FILES+=("Readme.md")
 FILES+=("translations/**")
 FILES+=("upgrade/**")
