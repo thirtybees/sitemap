@@ -310,6 +310,13 @@ class Sitemap extends Module
                     $idObj = 0;
                 }
             }
+            foreach($linkSitemap as $key => $link) {
+                if($key!=0) {
+                    if ($link['link']==$linkSitemap[0]['link']) {
+                        unset($linkSitemap[$key]);
+                    }
+                }
+            }
             $this->_recursiveSitemapCreator($linkSitemap, $lang['iso_code'], $index);
             $page = '';
             $index = 0;
