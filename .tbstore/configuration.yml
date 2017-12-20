@@ -1,0 +1,13 @@
+module_name: Sitemap Module
+compatible_versions: 1.0.0+
+author: thirty bees
+category: seo
+tags:
+  - sitemap
+  - site map
+  - seo
+description_short: The Sitemap module will allow you to make a sitemap for your site.
+description: description.md
+images:
+  - image-1.png
+license: AFL

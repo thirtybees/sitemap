@@ -1,0 +1,1 @@
+The sitemap module will allow you to create a sitemap for your site so you can submit it to search engines. This module will allow you to create a sitemap and create a cron job to automatically make a new sitemap daily or weekly.
