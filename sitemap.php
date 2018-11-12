@@ -194,9 +194,9 @@ class Sitemap extends Module
     {
         /* Store the posted parameters and generate a new Google Sitemap files for the current Shop */
         if (Tools::isSubmit('SubmitGsitemap')) {
-            Configuration::updateValue('SITEMAP_FREQUENCY', pSQL(Tools::getValue('sitemap_frequency')));
+            Configuration::updateValue('SITEMAP_FREQUENCY', Tools::getValue('sitemap_frequency'));
             Configuration::updateValue('SITEMAP_INDEX_CHECK', '');
-            Configuration::updateValue('SITEMAP_CHECK_IMAGE_FILE', pSQL(Tools::getValue('sitemap_check_image_file')));
+            Configuration::updateValue('SITEMAP_CHECK_IMAGE_FILE', Tools::getValue('sitemap_check_image_file'));
             $meta = '';
             if (Tools::getValue('sitemap_meta')) {
                 $meta .= implode(', ', Tools::getValue('sitemap_meta'));
