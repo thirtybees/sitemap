@@ -354,26 +354,28 @@ class Sitemap extends Module
             fwrite($writeFd, '<url>'."\r\n");
             $lastmod = (isset($file['lastmod']) && !empty($file['lastmod'])) ? date('c', strtotime($file['lastmod'])) : null;
             $this->_addSitemapNode($writeFd, htmlspecialchars(strip_tags($file['link'])), $this->_getPriorityPage($file['page']), Configuration::get('SITEMAP_FREQUENCY'), $lastmod);
-            if ($file['image']) {
-                $this->_addSitemapNodeImage(
-                    $writeFd, htmlspecialchars(strip_tags($file['image']['link'])), isset($file['image']['title_img']) ? htmlspecialchars(
-                    str_replace(
-                        [
-                            "\r\n",
-                            "\r",
-                            "\n",
-                        ], '', strip_tags($file['image']['title_img'])
-                    )
-                ) : '', isset($file['image']['caption']) ? htmlspecialchars(
-                    str_replace(
-                        [
-                            "\r\n",
-                            "\r",
-                            "\n",
-                        ], '', strip_tags($file['image']['caption'])
-                    )
-                ) : ''
-                );
+            if ($file['imagesAll']){
+            foreach ($file['imagesAll'] as $key => $fileimage) {
+                    $this->_addSitemapNodeImage(
+                        $writeFd, htmlspecialchars(strip_tags($fileimage['link'])), isset($fileimage['title_img']) ? htmlspecialchars(
+                        str_replace(
+                            [
+                                "\r\n",
+                                "\r",
+                                "\n",
+                            ], '', strip_tags($fileimage['title_img'])
+                        )
+                    ) : '', isset($fileimage['caption']) ? htmlspecialchars(
+                        str_replace(
+                            [
+                                "\r\n",
+                                "\r",
+                                "\n",
+                            ], '', strip_tags($fileimage['caption'])
+                        )
+                    ) : ''
+                    );
+                }
             }
             fwrite($writeFd, '</url>'."\r\n");
         }
@@ -612,28 +614,32 @@ class Sitemap extends Module
 
             $url = $link->getProductLink($product, $product->link_rewrite, htmlspecialchars(strip_tags($product->category)), $product->ean13, (int) $lang['id_lang'], (int) $this->context->shop->id, 0, true);
 
-            $idImage = Product::getCover((int) $idProduct['id_product']);
-            if (isset($idImage['id_image'])) {
-                $imageLink = $this->context->link->getImageLink($product->link_rewrite, $product->id.'-'.(int) $idImage['id_image'], 'large_default');
-                $imageLink = (!in_array(rtrim(Context::getContext()->shop->virtual_uri, '/'), explode('/', $imageLink))) ? str_replace(
+            // updated
+            $imagesAll = Image::getImages($lang['id_lang'], $idProduct['id_product']);
+            foreach ($imagesAll as $key => $imageAll) {
+
+                $imageAllLink = $this->context->link->getImageLink($product->link_rewrite, $product->id.'-'.(int) $imageAll['id_image'], '');
+                $imageAllLink = (!in_array(rtrim(Context::getContext()->shop->virtual_uri, '/'), explode('/', $imageAllLink))) ? str_replace(
                     [
                         'https',
                         Context::getContext()->shop->domain.Context::getContext()->shop->physical_uri,
                     ], [
                     'http',
                     Context::getContext()->shop->domain.Context::getContext()->shop->physical_uri.Context::getContext()->shop->virtual_uri,
-                ], $imageLink
-                ) : $imageLink;
+                ], $imageAllLink
+                ) : $imageAllLink;
+
+                $fileHeaders = (Configuration::get('SITEMAP_CHECK_IMAGE_FILE')) ? @get_headers($imageAllLink) : true;
+                if (isset($imageAllLink) && ($fileHeaders[0] != 'HTTP/1.1 404 Not Found' || $fileHeaders === true)) {
+                    $imagesAllProduct[] = [
+                        'title_img' => htmlspecialchars(strip_tags($product->name)),
+                        'caption'   => htmlspecialchars(strip_tags($product->description_short)),
+                        'link'      => $imageAllLink,
+                    ];
+                }
+                unset($imageAllLink);
             }
-            $fileHeaders = (Configuration::get('SITEMAP_CHECK_IMAGE_FILE')) ? @get_headers($imageLink) : true;
-            $imageProduct = [];
-            if (isset($imageLink) && ($fileHeaders[0] != 'HTTP/1.1 404 Not Found' || $fileHeaders === true)) {
-                $imageProduct = [
-                    'title_img' => htmlspecialchars(strip_tags($product->name)),
-                    'caption'   => htmlspecialchars(strip_tags($product->description_short)),
-                    'link'      => $imageLink,
-                ];
-            }
+
             if (!$this->_addLinkToSitemap(
                 $linkSitemap,
                 [
@@ -641,7 +647,7 @@ class Sitemap extends Module
                     'page'    => 'product',
                     'lastmod' => $product->date_upd,
                     'link'    => $url,
-                    'image'   => $imageProduct,
+                    'imagesAll'=> $imagesAllProduct,
                 ],
                 $lang['iso_code'],
                 $index,
@@ -653,6 +659,8 @@ class Sitemap extends Module
             }
 
             unset($imageLink);
+            unset($imageAllLink);
+            unset($imagesAllProduct);
         }
 
         return true;
