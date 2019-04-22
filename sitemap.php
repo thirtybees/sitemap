@@ -223,11 +223,10 @@ class Sitemap extends Module
                 'sitemap_frequency'        => Configuration::get('SITEMAP_FREQUENCY'),
                 'sitemap_store_url'        => 'http://'.Tools::getShopDomain(false, true).__PS_BASE_URI__,
                 'sitemap_links'            => Db::getInstance()->ExecuteS('SELECT * FROM `'._DB_PREFIX_.'sitemap_sitemap` WHERE id_shop = '.(int) $this->context->shop->id),
-                'store_metas'               => Meta::getMetasByIdLang((int) $this->context->cookie->id_lang),
+                'store_metas'              => Meta::getMetasByIdLang((int) $this->context->cookie->id_lang),
                 'sitemap_disable_metas'    => explode(',', Configuration::get('SITEMAP_DISABLE_LINKS')),
                 'sitemap_customer_limit'   => [
                     'max_exec_time' => (int) ini_get('max_execution_time'),
-                    'memory_limit'  => intval(ini_get('memory_limit')),
                 ],
                 'prestashop_ssl'            => Configuration::get('PS_SSL_ENABLED'),
                 'sitemap_check_image_file' => Configuration::get('SITEMAP_CHECK_IMAGE_FILE'),

@@ -40,13 +40,10 @@
         </fieldset>
     {/if}
     <br/>
-    {if ($sitemap_customer_limit.max_exec_time < 30 && $sitemap_customer_limit.max_exec_time > 0) || ($sitemap_customer_limit.memory_limit < 128 && $sitemap_customer_limit.memory_limit > 0)}
+    {if ($sitemap_customer_limit.max_exec_time < 30 && $sitemap_customer_limit.max_exec_time > 0)}
         <div class="warn" style="width: 700px; margin: 0 auto;">
             <p>{l s='For a better use of the module, please make sure that you have' mod='sitemap'}<br/>
             <ul>
-                {if $sitemap_customer_limit.memory_limit < 128 && $sitemap_customer_limit.memory_limit > 0}
-                    <li>{l s='a minimum memory_limit value of 128 MB.' mod='sitemap'}</li>
-                {/if}
                 {if $sitemap_customer_limit.max_exec_time < 30 && $sitemap_customer_limit.max_exec_time > 0}
                     <li>{l s='a minimum max_execution_time value of 30 seconds.' mod='sitemap'}</li>
                 {/if}
