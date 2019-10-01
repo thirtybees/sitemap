@@ -218,7 +218,6 @@ class Sitemap extends Module
             [
                 'sitemap_form'             => './index.php?tab=AdminModules&configure=sitemap&token='.Tools::getAdminTokenLite('AdminModules').'&tab_module='.$this->tab.'&module_name=sitemap',
                 'sitemap_cron'             => _PS_BASE_URL_._MODULE_DIR_.'sitemap/sitemap-cron.php?token='.substr(Tools::encrypt('sitemap/cron'), 0, 10).'&id_shop='.$this->context->shop->id,
-                'sitemap_feed_exists'      => file_exists($this->normalizeDirectory(_PS_ROOT_DIR_).'index_sitemap.xml'),
                 'sitemap_last_export'      => Configuration::get('SITEMAP_LAST_EXPORT'),
                 'sitemap_frequency'        => Configuration::get('SITEMAP_FREQUENCY'),
                 'sitemap_store_url'        => 'http://'.Tools::getShopDomain(false, true).__PS_BASE_URI__,
@@ -228,7 +227,6 @@ class Sitemap extends Module
                 'sitemap_customer_limit'   => [
                     'max_exec_time' => (int) ini_get('max_execution_time'),
                 ],
-                'prestashop_ssl'            => Configuration::get('PS_SSL_ENABLED'),
                 'sitemap_check_image_file' => Configuration::get('SITEMAP_CHECK_IMAGE_FILE'),
                 'shop'                      => $this->context->shop,
             ]
