@@ -272,7 +272,7 @@ class Sitemap extends Module
     public function createSitemap($idShop = 0)
     {
         if (@fopen($this->normalizeDirectory(_PS_ROOT_DIR_).'/test.txt', 'w') == false) {
-            $this->context->smarty->assign('google_maps_error', $this->l('An error occured while trying to check your file permissions. Please adjust your permissions to allow PrestaShop to write a file in your root directory.'));
+            $this->context->smarty->assign('google_maps_error', $this->l('An error occured while trying to check your file permissions. Please adjust your permissions to allow thirty bees to write a file in your root directory.'));
 
             return false;
         } else {
