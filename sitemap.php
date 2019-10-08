@@ -446,7 +446,7 @@ class Sitemap extends Module
 
         foreach ($sitemaps as $link) {
             $sitemap = $xmlFeed->addChild('sitemap');
-            $sitemap->addChild('loc', 'http'.(Configuration::get('PS_SSL_ENABLED') && Configuration::get('PS_SSL_ENABLED_EVERYWHERE') ? 's' : '').'://'.Tools::getShopDomain(false, true).__PS_BASE_URI__.$link['link']);
+            $sitemap->addChild('loc', 'http'.(Configuration::get('PS_SSL_ENABLED') ? 's' : '').'://'.Tools::getShopDomain(false, true).__PS_BASE_URI__.$link['link']);
             $sitemap->addChild('lastmod', date('c'));
         }
         file_put_contents($this->normalizeDirectory(_PS_ROOT_DIR_).$this->context->shop->id.'_index_sitemap.xml', $xmlFeed->asXML());
@@ -466,7 +466,7 @@ class Sitemap extends Module
      */
     protected function _getHomeLink(&$linkSitemap, $lang, &$index, &$i)
     {
-        if (Configuration::get('PS_SSL_ENABLED') && Configuration::get('PS_SSL_ENABLED_EVERYWHERE')) {
+        if (Configuration::get('PS_SSL_ENABLED')) {
             $protocol = 'https://';
         } else {
             $protocol = 'http://';
@@ -759,7 +759,7 @@ class Sitemap extends Module
             $manufacturer = new Manufacturer((int) $manufacturerId['id_manufacturer'], $lang['id_lang']);
             $url = $link->getManufacturerLink($manufacturer, $manufacturer->link_rewrite, $lang['id_lang']);
 
-            $imageLink = 'http'.(Configuration::get('PS_SSL_ENABLED') && Configuration::get('PS_SSL_ENABLED_EVERYWHERE') ? 's' : '').'://'.Tools::getMediaServer(_THEME_MANU_DIR_)._THEME_MANU_DIR_.((!file_exists(_PS_MANU_IMG_DIR_.'/'.(int) $manufacturer->id.'-medium_default.jpg')) ? $lang['iso_code'].'-default' : (int) $manufacturer->id).'-medium_default.jpg';
+            $imageLink = 'http'.(Configuration::get('PS_SSL_ENABLED') ? 's' : '').'://'.Tools::getMediaServer(_THEME_MANU_DIR_)._THEME_MANU_DIR_.((!file_exists(_PS_MANU_IMG_DIR_.'/'.(int) $manufacturer->id.'-medium_default.jpg')) ? $lang['iso_code'].'-default' : (int) $manufacturer->id).'-medium_default.jpg';
             $imageLink = (!in_array(rtrim(Context::getContext()->shop->virtual_uri, '/'), explode('/', $imageLink))) ? str_replace(
                 [
                     'https',
