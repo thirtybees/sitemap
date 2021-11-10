@@ -649,7 +649,7 @@ class Sitemap extends Module
      */
     protected function _getProductLink(&$linkSitemap, $lang, &$index, &$i, $idProduct = 0)
     {
-        $link = new Link();
+        $link = $this->context->link;
         if (method_exists('ShopUrl', 'resetMainDomainCache')) {
             ShopUrl::resetMainDomainCache();
         }
@@ -662,20 +662,15 @@ class Sitemap extends Module
             $url = $link->getProductLink($product, $product->link_rewrite, htmlspecialchars(strip_tags($product->category)), $product->ean13, (int) $lang['id_lang'], (int) $this->context->shop->id, 0, true);
 
             $idImage = Product::getCover((int) $idProduct['id_product']);
+
             $imageLink = null;
             if (isset($idImage['id_image'])) {
-                $imageLink = $this->context->link->getImageLink($product->link_rewrite, $product->id.'-'.(int) $idImage['id_image'], 'large_default');
-                $imageLink = (!in_array(rtrim(Context::getContext()->shop->virtual_uri, '/'), explode('/', $imageLink))) ? str_replace(
-                    [
-                        'https',
-                        Context::getContext()->shop->domain.Context::getContext()->shop->physical_uri,
-                    ], [
-                    'http',
-                    Context::getContext()->shop->domain.Context::getContext()->shop->physical_uri.Context::getContext()->shop->virtual_uri,
-                ], $imageLink
-                ) : $imageLink;
+                $id = (int)$idImage['id_image'];
+                $imageFile = _PS_PROD_IMG_DIR_ . Image::getImgFolderStatic($id) . $id . '.jpg';
+                if (file_exists($imageFile)) {
+                    $imageLink = $link->getImageLink($product->link_rewrite, $id, $this->getImageType('products'));
+                }
             }
-
 
             $imageProduct = [];
             if ($this->validateImageLink($imageLink)) {
@@ -739,22 +734,15 @@ class Sitemap extends Module
         );
 
         foreach ($categoryIds as $categoryId) {
-            $category = new Category((int) $categoryId['id_category'], (int) $lang['id_lang']);
+            $id = (int) $categoryId['id_category'];
+            $category = new Category($id, (int) $lang['id_lang']);
             $url = $link->getCategoryLink($category, urlencode($category->link_rewrite), (int) $lang['id_lang']);
 
-            $imageLink = null;
-            if ($category->id_image) {
-                $imageLink = $this->context->link->getCatImageLink($category->link_rewrite, (int) $category->id_image, 'category_default');
-                $imageLink = (!in_array(rtrim(Context::getContext()->shop->virtual_uri, '/'), explode('/', $imageLink))) ? str_replace(
-                    [
-                        'https',
-                        Context::getContext()->shop->domain.Context::getContext()->shop->physical_uri,
-                    ], [
-                    'http',
-                    Context::getContext()->shop->domain.Context::getContext()->shop->physical_uri.Context::getContext()->shop->virtual_uri,
-                ], $imageLink
-                ) : $imageLink;
-            }
+            $imageFile = _PS_CAT_IMG_DIR_.$id.'.jpg';
+            $imageLink = file_exists($imageFile)
+                ? $this->getImageLink('categories', $id, $category->link_rewrite)
+                : null;
+
             $imageCategory = [];
             if ($this->validateImageLink($imageLink)) {
                 $imageCategory = [
@@ -801,7 +789,7 @@ class Sitemap extends Module
      */
     protected function _getManufacturerLink(&$linkSitemap, $lang, &$index, &$i, $idManufacturer = 0)
     {
-        $link = new Link();
+        $link = $this->context->link;
         if (method_exists('ShopUrl', 'resetMainDomainCache')) {
             ShopUrl::resetMainDomainCache();
         }
@@ -815,31 +803,26 @@ class Sitemap extends Module
             ' ORDER BY m.`id_manufacturer` ASC'
         );
         foreach ($manufacturersId as $manufacturerId) {
+            $id = (int) $manufacturerId['id_manufacturer'];
             // Check if manufacturer has any active product
             $query = new \DbQuery();
             $query->select('COUNT(*)');
             $query->from('product', 'p');
             $query->innerJoin('product_shop', 'ps', 'p.id_product=ps.id_product AND ps.id_shop='.\Context::getContext()->shop->id);
-            $query->where('p.id_manufacturer = ' . $manufacturerId['id_manufacturer']);
+            $query->where('p.id_manufacturer = ' . $id);
             $query->where('ps.active = 1');
 
             if (!\Db::getInstance()->getValue($query)) {
                 continue;
             }
 
-            $manufacturer = new Manufacturer((int) $manufacturerId['id_manufacturer'], $lang['id_lang']);
+            $manufacturer = new Manufacturer($id, $lang['id_lang']);
             $url = $link->getManufacturerLink($manufacturer, $manufacturer->link_rewrite, $lang['id_lang']);
 
-            $imageLink = 'http'.(Configuration::get('PS_SSL_ENABLED') ? 's' : '').'://'.Tools::getMediaServer(_THEME_MANU_DIR_)._THEME_MANU_DIR_.((!file_exists(_PS_MANU_IMG_DIR_.'/'.(int) $manufacturer->id.'-medium_default.jpg')) ? $lang['iso_code'].'-default' : (int) $manufacturer->id).'-medium_default.jpg';
-            $imageLink = (!in_array(rtrim(Context::getContext()->shop->virtual_uri, '/'), explode('/', $imageLink))) ? str_replace(
-                [
-                    'https',
-                    Context::getContext()->shop->domain.Context::getContext()->shop->physical_uri,
-                ], [
-                'http',
-                Context::getContext()->shop->domain.Context::getContext()->shop->physical_uri.Context::getContext()->shop->virtual_uri,
-            ], $imageLink
-            ) : $imageLink;
+            $imageFile = _PS_MANU_IMG_DIR_.$id.'.jpg';
+            $imageLink = file_exists($imageFile)
+                ? $this->getImageLink('manufacturers', $id)
+                : null;
 
             $manufacturerImage = [];
             if ($this->validateImageLink($imageLink)) {
@@ -930,19 +913,14 @@ class Sitemap extends Module
 			ORDER BY s.`id_supplier` ASC'
         );
         foreach ($suppliersId as $supplierId) {
-            $supplier = new Supplier((int) $supplierId['id_supplier'], $lang['id_lang']);
+            $id = (int) $supplierId['id_supplier'];
+            $supplier = new Supplier($id, $lang['id_lang']);
             $url = $link->getSupplierLink($supplier, $supplier->link_rewrite, $lang['id_lang']);
 
-            $imageLink = 'http://'.Tools::getMediaServer(_THEME_SUP_DIR_)._THEME_SUP_DIR_.((!file_exists(_THEME_SUP_DIR_.'/'.(int) $supplier->id.'-medium_default.jpg')) ? $lang['iso_code'].'-default' : (int) $supplier->id).'-medium_default.jpg';
-            $imageLink = (!in_array(rtrim(Context::getContext()->shop->virtual_uri, '/'), explode('/', $imageLink))) ? str_replace(
-                [
-                    'https',
-                    Context::getContext()->shop->domain.Context::getContext()->shop->physical_uri,
-                ], [
-                'http',
-                Context::getContext()->shop->domain.Context::getContext()->shop->physical_uri.Context::getContext()->shop->virtual_uri,
-            ], $imageLink
-            ) : $imageLink;
+            $imageFile = _PS_SUPP_IMG_DIR_. $id.'.jpg';
+            $imageLink = file_exists($imageFile)
+                ? $this->getImageLink('suppliers', $id)
+                : null;
 
             $supplierImage = [];
             if ($this->validateImageLink($imageLink)) {
@@ -1116,6 +1094,97 @@ class Sitemap extends Module
         } catch (Exception $ignored) {
             return false;
         }
+    }
+
+
+    /**
+     * @param string $class
+     * @param int $id
+     * @param string $rewrite
+     * @return string
+     * @throws PrestaShopException
+     */
+    protected function getImageLink($class, $id, $rewrite='')
+    {
+        return Link::getGenericImageLink(
+            $class,
+            $id,
+            $this->getImageType($class),
+            '',
+            null,
+            $rewrite
+        );
+    }
+
+    /**
+     * Returns image type for given $class
+     *
+     * @param $class
+     * @return string
+     * @throws PrestaShopException
+     */
+    protected function getImageType($class)
+    {
+        $types = $this->getSelectedImageTypes();
+        if (! array_key_exists($class, $types)) {
+            throw new RuntimeException('Invalid class: ' . $class);
+        }
+        return $types[$class];
+    }
+
+    /**
+     * Returns selected image types for each image class
+     *
+     * @return array
+     * @throws PrestaShopException
+     */
+    protected function getSelectedImageTypes()
+    {
+        $selectedTypes = [];
+        foreach ($this->getAllImageTypes() as $class => $types) {
+            $selected = Configuration::get('SITEMAP_IMAGE_TYPE_' . strtoupper($class));
+            if ($selected && in_array($selected, $types)) {
+                $selectedTypes[$class] = $selected;
+            } else {
+                if (count($types) > 0) {
+                    $selectedTypes[$class] = $types[0];
+                } else {
+                    throw new PrestaShopException('No image type exists for class ' . $class);
+                }
+            }
+        }
+        return $selectedTypes;
+    }
+
+    /**
+     * Return image types indexed by class
+     *
+     * @throws PrestaShopException
+     * @return array
+     */
+    protected function getAllImageTypes()
+    {
+        $types = [
+            'products' => [],
+            'categories' => [],
+            'suppliers' => [],
+            'manufacturers' => []
+        ];
+        foreach (ImageType::getImagesTypes(null, true) as $typeDefinition) {
+            if ($typeDefinition['products']) {
+                $types['products'][] = $typeDefinition['name'];
+            }
+            if ($typeDefinition['categories']) {
+                $types['categories'][] = $typeDefinition['name'];
+            }
+            if ($typeDefinition['suppliers']) {
+                $types['suppliers'][] = $typeDefinition['name'];
+            }
+            if ($typeDefinition['manufacturers']) {
+                $types['manufacturers'][] = $typeDefinition['name'];
+            }
+        }
+        return $types;
     }
 
 }
