@@ -381,40 +381,71 @@ class Sitemap extends Module
         $sitemapLink = $this->context->shop->id.'_'.$lang.'_'.$index.'_sitemap.xml';
         $writeFd = fopen($this->normalizeDirectory(_PS_ROOT_DIR_).$sitemapLink, 'w');
 
-        fwrite($writeFd, '<?xml version="1.0" encoding="UTF-8"?>'."\r\n".'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'."\r\n");
+        fwrite($writeFd, (
+            '<?xml version="1.0" encoding="UTF-8"?>'.PHP_EOL.
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'.PHP_EOL
+        ));
+
         foreach ($linkSitemap as $key => $file) {
-            fwrite($writeFd, '<url>'."\r\n");
-            $lastmod = (isset($file['lastmod']) && !empty($file['lastmod'])) ? date('c', strtotime($file['lastmod'])) : null;
-            $this->_addSitemapNode($writeFd, htmlspecialchars(strip_tags($file['link'])), $this->_getPriorityPage($file['page']), Configuration::get('SITEMAP_FREQUENCY'), $lastmod);
-            if ($file['image']) {
+            fwrite($writeFd, '  <url>'.PHP_EOL);
+            $lastModification = (isset($file['lastmod']) && !empty($file['lastmod'])) ? date('c', strtotime($file['lastmod'])) : null;
+            $this->_addSitemapNode(
+                $writeFd,
+                $this->escapeProperty('link', $file),
+                $this->_getPriorityPage($file['page']),
+                Configuration::get('SITEMAP_FREQUENCY'),
+                $lastModification
+            );
+            foreach ($this->getNodeImages($file) as $image) {
                 $this->_addSitemapNodeImage(
-                    $writeFd, htmlspecialchars(strip_tags($file['image']['link'])), isset($file['image']['title_img']) ? htmlspecialchars(
-                    str_replace(
-                        [
-                            "\r\n",
-                            "\r",
-                            "\n",
-                        ], '', strip_tags($file['image']['title_img'])
-                    )
-                ) : '', isset($file['image']['caption']) ? htmlspecialchars(
-                    str_replace(
-                        [
-                            "\r\n",
-                            "\r",
-                            "\n",
-                        ], '', strip_tags($file['image']['caption'])
-                    )
-                ) : ''
+                    $writeFd,
+                    $this->escapeProperty('link', $image),
+                    $this->escapeProperty('title_img', $image),
+                    $this->escapeProperty('caption', $image)
                 );
             }
-            fwrite($writeFd, '</url>'."\r\n");
+            fwrite($writeFd, '  </url>'.PHP_EOL);
         }
-        fwrite($writeFd, '</urlset>'."\r\n");
+        fwrite($writeFd, '</urlset>'.PHP_EOL);
         fclose($writeFd);
         $this->_saveSitemapLink($sitemapLink);
         $index++;
 
         return true;
+    }
+
+    /**
+     * Return array of images in definition
+     *
+     * @param array $definition
+     * @return array
+     */
+    protected function getNodeImages(array $definition)
+    {
+        $images = [];
+        if (array_key_exists('images', $definition)) {
+            $images = $definition['images'];
+        }
+        if (array_key_exists('image', $definition)) {
+            $images[] = $definition['image'];
+        }
+        return array_filter($images);
+    }
+
+    /**
+     * @param string $property
+     * @param array $definition
+     * @return string
+     */
+    protected function escapeProperty($property, $definition)
+    {
+        if (isset($definition[$property])) {
+            $value = $definition[$property];
+            $value = strip_tags($value);
+            $value = str_replace(["\r\n", "\r", "\n"], '', $value);
+            return htmlspecialchars($value);
+        }
+        return '';
     }
 
     /**
@@ -429,7 +460,15 @@ class Sitemap extends Module
      */
     protected function _addSitemapNode($fd, $loc, $priority, $change_freq, $last_mod = null)
     {
-        fwrite($fd, '<loc>'.(Configuration::get('PS_REWRITING_SETTINGS') ? '<![CDATA['.$loc.']]>' : $loc).'</loc>'."\r\n".'<priority>'.number_format($priority, 1, '.', '').'</priority>'."\r\n".($last_mod ? '<lastmod>'.date('c', strtotime($last_mod)).'</lastmod>' : '')."\r\n".'<changefreq>'.$change_freq.'</changefreq>'."\r\n");
+        fwrite($fd, (
+            '    <loc>'.(Configuration::get('PS_REWRITING_SETTINGS') ? '<![CDATA['.$loc.']]>' : $loc).'</loc>'.PHP_EOL.
+            '    <priority>'.number_format($priority, 1, '.', '').'</priority>'.PHP_EOL.
+            '    <changefreq>'.$change_freq.'</changefreq>'.PHP_EOL
+        ));
+
+        if ($last_mod) {
+            fwrite($fd, '    <lastmod>'.date('c', strtotime($last_mod)).'</lastmod>'.PHP_EOL);
+        }
     }
 
     /**
@@ -458,7 +497,15 @@ class Sitemap extends Module
      */
     protected function _addSitemapNodeImage($fd, $link, $title, $caption)
     {
-        fwrite($fd, '<image:image>'."\r\n".'<image:loc>'.(Configuration::get('PS_REWRITING_SETTINGS') ? '<![CDATA['.$link.']]>' : $link).'</image:loc>'."\r\n".'<image:caption><![CDATA['.$caption.']]></image:caption>'."\r\n".'<image:title><![CDATA['.$title.']]></image:title>'."\r\n".'</image:image>'."\r\n");
+        fwrite($fd, '    <image:image>'.PHP_EOL);
+        fwrite($fd, '      <image:loc>'.(Configuration::get('PS_REWRITING_SETTINGS') ? '<![CDATA['.$link.']]>' : $link).'</image:loc>'.PHP_EOL);
+        if ($caption) {
+            fwrite($fd, '      <image:caption><![CDATA['.$caption.']]></image:caption>'.PHP_EOL);
+        }
+        if ($title) {
+            fwrite($fd, '      <image:title><![CDATA['.$title.']]></image:title>'.PHP_EOL);
+        }
+        fwrite($fd, '    </image:image>'.PHP_EOL);
     }
 
     /**
@@ -529,8 +576,7 @@ class Sitemap extends Module
             [
                 'type'  => 'home',
                 'page'  => 'home',
-                'link'  => $protocol.Tools::getShopDomainSsl(false).$this->context->shop->getBaseURI().(method_exists('Language', 'isMultiLanguageActivated') ? Language::isMultiLanguageActivated() ? $lang['iso_code'].'/' : '' : ''),
-                'image' => false,
+                'link'  => $protocol.Tools::getShopDomainSsl(false).$this->context->shop->getBaseURI().(method_exists('Language', 'isMultiLanguageActivated') ? Language::isMultiLanguageActivated() ? $lang['iso_code'].'/' : '' : '')
             ],
             $lang['iso_code'],
             $index,
@@ -618,8 +664,7 @@ class Sitemap extends Module
                     [
                         'type'  => 'meta',
                         'page'  => $meta['page'],
-                        'link'  => $url,
-                        'image' => false,
+                        'link'  => $url
                     ],
                     $lang['iso_code'],
                     $index,
@@ -661,24 +706,27 @@ class Sitemap extends Module
 
             $url = $link->getProductLink($product, $product->link_rewrite, htmlspecialchars(strip_tags($product->category)), $product->ean13, (int) $lang['id_lang'], (int) $this->context->shop->id, 0, true);
 
-            $idImage = Product::getCover((int) $idProduct['id_product']);
-
-            $imageLink = null;
-            if (isset($idImage['id_image'])) {
-                $id = (int)$idImage['id_image'];
-                $imageFile = _PS_PROD_IMG_DIR_ . Image::getImgFolderStatic($id) . $id . '.jpg';
-                if (file_exists($imageFile)) {
-                    $imageLink = $link->getImageLink($product->link_rewrite, $id, $this->getImageType('products'));
+            $images = [];
+            $productImages = Image::getImages($lang['id_lang'], $idProduct['id_product']);
+            if (is_array($productImages)) {
+                foreach ($productImages as $productImage) {
+                    $id = (int)$productImage['id_image'];
+                    $imageFile = _PS_PROD_IMG_DIR_ . Image::getImgFolderStatic($id) . $id . '.jpg';
+                    if (file_exists($imageFile)) {
+                        $imageLink = $link->getImageLink($product->link_rewrite, $id, $this->getImageType('products'));
+                        if ($this->validateImageLink($imageLink)) {
+                            $title = $productImage['legend'];
+                            if (! $title) {
+                                $title = $product->name;
+                            }
+                            $images[] = [
+                                'title_img' => $title,
+                                'caption' => $product->description_short,
+                                'link' => $imageLink,
+                            ];
+                        }
+                    }
                 }
-            }
-
-            $imageProduct = [];
-            if ($this->validateImageLink($imageLink)) {
-                $imageProduct = [
-                    'title_img' => htmlspecialchars(strip_tags($product->name)),
-                    'caption'   => htmlspecialchars(strip_tags($product->description_short)),
-                    'link'      => $imageLink,
-                ];
             }
 
             if (!$this->_addLinkToSitemap(
@@ -688,7 +736,7 @@ class Sitemap extends Module
                     'page'    => 'product',
                     'lastmod' => $product->date_upd,
                     'link'    => $url,
-                    'image'   => $imageProduct,
+                    'images'  => $images,
                 ],
                 $lang['iso_code'],
                 $index,
@@ -746,7 +794,7 @@ class Sitemap extends Module
             $imageCategory = [];
             if ($this->validateImageLink($imageLink)) {
                 $imageCategory = [
-                    'title_img' => htmlspecialchars(strip_tags($category->name)),
+                    'title_img' => $category->name,
                     'link'      => $imageLink,
                 ];
             }
@@ -827,8 +875,8 @@ class Sitemap extends Module
             $manufacturerImage = [];
             if ($this->validateImageLink($imageLink)) {
             	$manufacturerImage = [
-                    'title_img' => htmlspecialchars(strip_tags($manufacturer->name)),
-                    'caption'   => htmlspecialchars(strip_tags($manufacturer->short_description)),
+                    'title_img' => $manufacturer->name,
+                    'caption'   => $manufacturer->short_description,
                     'link'      => $imageLink,
                 ];
             }
@@ -925,7 +973,7 @@ class Sitemap extends Module
             $supplierImage = [];
             if ($this->validateImageLink($imageLink)) {
                 $supplierImage = [
-                    'title_img' => htmlspecialchars(strip_tags($supplier->name)),
+                    'title_img' => $supplier->name,
                     'link'      => $imageLink
                 ];
             }
