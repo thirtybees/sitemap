@@ -601,12 +601,7 @@ class Sitemap extends Module
         if (method_exists('ShopUrl', 'resetMainDomainCache')) {
             ShopUrl::resetMainDomainCache();
         }
-        $link = new Link();
-        if (version_compare(_PS_VERSION_, '1.6', '>=')) {
-            $metas = Db::getInstance()->ExecuteS('SELECT * FROM `'._DB_PREFIX_.'meta` WHERE `configurable` > 0 AND `id_meta` >= '.(int) $idMeta.' ORDER BY `id_meta` ASC');
-        } else {
-            $metas = Db::getInstance()->ExecuteS('SELECT * FROM `'._DB_PREFIX_.'meta` WHERE `id_meta` >= '.(int) $idMeta.' ORDER BY `id_meta` ASC');
-        }
+        $metas = Db::getInstance()->ExecuteS('SELECT * FROM `'._DB_PREFIX_.'meta` WHERE `configurable` > 0 AND `id_meta` >= '.(int) $idMeta.' ORDER BY `id_meta` ASC');
         foreach ($metas as $meta) {
             $url = '';
             if (!in_array($meta['id_meta'], explode(',', Configuration::get('SITEMAP_DISABLE_LINKS')))) {
