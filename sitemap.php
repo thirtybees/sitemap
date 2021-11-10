@@ -352,8 +352,6 @@ class Sitemap extends Module
                 }
             }
             $this->_recursiveSitemapCreator($linkSitemap, $lang['iso_code'], $index);
-            $page = '';
-            $index = 0;
         }
 
         $this->_createIndexSitemap();
