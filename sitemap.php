@@ -32,13 +32,29 @@ if (!defined('_TB_VERSION_')) {
  */
 class Sitemap extends Module
 {
+    /**
+     * Hook name
+     */
     const HOOK_ADD_URLS = 'gSitemapAppendUrls';
 
+    /**
+     * @var bool
+     */
     public $cron = false;
+
+    /**
+     * @var array
+     */
     protected $sql_checks = [];
 
     /**
+     * @var array
+     */
+    protected $type_array = [];
+
+    /**
      * Gsitemap constructor.
+     * @throws PrestaShopException
      */
     public function __construct()
     {
@@ -74,6 +90,10 @@ class Sitemap extends Module
      * Step 2 - Install the Addon and create a database table to store Sitemap files name by shop
      *
      * @return boolean Installation result
+     * @throws Adapter_Exception
+     * @throws HTMLPurifier_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function install()
     {
@@ -153,6 +173,7 @@ class Sitemap extends Module
      * Delete all the generated Sitemap files  and drop the addon table.
      *
      * @return boolean
+     * @throws PrestaShopException
      */
     public function removeSitemap()
     {
@@ -175,6 +196,10 @@ class Sitemap extends Module
         return true;
     }
 
+    /**
+     * @param $directory
+     * @return string
+     */
     protected function normalizeDirectory($directory)
     {
         $last = $directory[strlen($directory) - 1];
@@ -190,6 +215,13 @@ class Sitemap extends Module
         return $directory;
     }
 
+    /**
+     * @return string
+     * @throws HTMLPurifier_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
+     */
     public function getContent()
     {
         /* Store the posted parameters and generate a new Google Sitemap files for the current Shop */
@@ -241,6 +273,8 @@ class Sitemap extends Module
      * @param int $idShop
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function emptySitemap($idShop = 0)
     {
@@ -268,6 +302,9 @@ class Sitemap extends Module
      * @param int $idShop Shop identifier
      *
      * @return bool
+     * @throws HTMLPurifier_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function createSitemap($idShop = 0)
     {
@@ -336,6 +373,7 @@ class Sitemap extends Module
      * @param int    $index       the index of the current Google Sitemap file
      *
      * @return bool
+     * @throws PrestaShopException
      */
     protected function _recursiveSitemapCreator($linkSitemap, $lang, &$index)
     {
@@ -390,6 +428,7 @@ class Sitemap extends Module
      * @param string   $priority
      * @param string   $change_freq
      * @param int      $last_mod the last modification date/time as a timestamp
+     * @throws PrestaShopException
      */
     protected function _addSitemapNode($fd, $loc, $priority, $change_freq, $last_mod = null)
     {
@@ -402,12 +441,20 @@ class Sitemap extends Module
      * @param string $page
      *
      * @return float|string|bool
+     * @throws PrestaShopException
      */
     protected function _getPriorityPage($page)
     {
         return Configuration::get('SITEMAP_PRIORITY_'.Tools::strtoupper($page)) ? Configuration::get('SITEMAP_PRIORITY_'.Tools::strtoupper($page)) : 0.1;
     }
 
+    /**
+     * @param resource $fd
+     * @param string $link
+     * @param string $title
+     * @param string $caption
+     * @throws PrestaShopException
+     */
     protected function _addSitemapNodeImage($fd, $link, $title, $caption)
     {
         fwrite($fd, '<image:image>'."\r\n".'<image:loc>'.(Configuration::get('PS_REWRITING_SETTINGS') ? '<![CDATA['.$link.']]>' : $link).'</image:loc>'."\r\n".'<image:caption><![CDATA['.$caption.']]></image:caption>'."\r\n".'<image:title><![CDATA['.$title.']]></image:title>'."\r\n".'</image:image>'."\r\n");
@@ -419,6 +466,7 @@ class Sitemap extends Module
      * @param string $sitemap the name of the generated Google Sitemap file
      *
      * @return bool
+     * @throws PrestaShopException
      */
     protected function _saveSitemapLink($sitemap)
     {
@@ -433,6 +481,8 @@ class Sitemap extends Module
      * Create the index file for all generated sitemaps
      *
      * @return boolean
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function _createIndexSitemap()
     {
@@ -458,11 +508,12 @@ class Sitemap extends Module
      * Hydrate $link_sitemap with home link
      *
      * @param array  $linkSitemap contain all the links for the Google Sitemap file to be generated
-     * @param string $lang        language of link to add
+     * @param array  $lang        language of link to add
      * @param int    $index       index of the current Google Sitemap file
      * @param int    $i           count of elements added to sitemap main array
      *
      * @return bool
+     * @throws PrestaShopException
      */
     protected function _getHomeLink(&$linkSitemap, $lang, &$index, &$i)
     {
@@ -496,6 +547,7 @@ class Sitemap extends Module
      * @param int    $id_obj      identifier of the object of the link to be added to the Gogle Sitemap file
      *
      * @return bool
+     * @throws PrestaShopException
      */
     public function _addLinkToSitemap(&$linkSitemap, $newLink, $lang, &$index, &$i, $id_obj)
     {
@@ -537,12 +589,14 @@ class Sitemap extends Module
      * Hydrate $link_sitemap with meta link
      *
      * @param array  $linkSitemap contain all the links for the Google Sitemap file to be generated
-     * @param string $lang        language of link to add
+     * @param array  $lang        language of link to add
      * @param int    $index       index of the current Google Sitemap file
      * @param int    $i           count of elements added to sitemap main array
      * @param int    $idMeta      meta object identifier
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function _getMetaLink(&$linkSitemap, $lang, &$index, &$i, $idMeta = 0)
     {
@@ -594,6 +648,8 @@ class Sitemap extends Module
      * @param int    $idProduct   product object identifier
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function _getProductLink(&$linkSitemap, $lang, &$index, &$i, $idProduct = 0)
     {
@@ -659,12 +715,14 @@ class Sitemap extends Module
      * Hydrate $link_sitemap with categories link
      *
      * @param array  $linkSitemap contain all the links for the Google Sitemap file to be generated
-     * @param string $lang        language of link to add
+     * @param array  $lang        language of link to add
      * @param int    $index       index of the current Google Sitemap file
      * @param int    $i           count of elements added to sitemap main array
      * @param int    $idCategory  category object identifier
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function _getCategoryLink(&$linkSitemap, $lang, &$index, &$i, $idCategory = 0)
     {
@@ -733,12 +791,14 @@ class Sitemap extends Module
      * return the link elements for the manufacturer object
      *
      * @param array  $linkSitemap    contain all the links for the Google Sitemap file to be generated
-     * @param string $lang           language of link to add
+     * @param array  $lang           language of link to add
      * @param int    $index          index of the current Google Sitemap file
      * @param int    $i              count of elements added to sitemap main array
      * @param int    $idManufacturer manufacturer object identifier
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function _getManufacturerLink(&$linkSitemap, $lang, &$index, &$i, $idManufacturer = 0)
     {
@@ -812,6 +872,13 @@ class Sitemap extends Module
         return true;
     }
 
+    /**
+     * @param string $tableName
+     * @param string $column
+     * @return bool|mixed
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     */
     protected function tableColumnExists($tableName, $column = null)
     {
         if (array_key_exists($tableName, $this->sql_checks)) {
@@ -840,12 +907,14 @@ class Sitemap extends Module
 
     /**
      * @param array  $linkSitemap contain all the links for the Google Sitemap file to be generated
-     * @param string $lang        language of link to add
+     * @param array  $lang        language of link to add
      * @param int    $index       index of the current Google Sitemap file
      * @param int    $i           count of elements added to sitemap main array
      * @param int    $idSupplier  supplier object identifier
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function _getSupplierLink(&$linkSitemap, $lang, &$index, &$i, $idSupplier = 0)
     {
@@ -906,12 +975,15 @@ class Sitemap extends Module
      * return the link elements for the CMS object
      *
      * @param array  $linkSitemap contain all the links for the Google Sitemap file to be generated
-     * @param string $lang        the language of link to add
+     * @param array  $lang        the language of link to add
      * @param int    $index       the index of the current Google Sitemap file
      * @param int    $i           the count of elements added to sitemap main array
      * @param int    $idCms       the CMS object identifier
      *
      * @return bool
+     * @throws Adapter_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function _getCmsLink(&$linkSitemap, $lang, &$index, &$i, $idCms = 0)
     {
@@ -964,12 +1036,13 @@ class Sitemap extends Module
      * The 'type' index is automatically set to 'module' (not sure here, should we be safe or trust modules?).
      *
      * @param array  $linkSitemap by ref. accumulator for all the links for the Google Sitemap file to be generated
-     * @param string $lang        the language being processed
+     * @param array  $lang        the language being processed
      * @param int    $index       the index of the current Google Sitemap file
      * @param int    $i           the count of elements added to sitemap main array
      * @param int    $numLink     restart at link number #$num_link
      *
      * @return boolean
+     * @throws PrestaShopException
      */
     protected function _getModuleLink(&$linkSitemap, $lang, &$index, &$i, $numLink = 0)
     {
