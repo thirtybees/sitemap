@@ -662,6 +662,7 @@ class Sitemap extends Module
             $url = $link->getProductLink($product, $product->link_rewrite, htmlspecialchars(strip_tags($product->category)), $product->ean13, (int) $lang['id_lang'], (int) $this->context->shop->id, 0, true);
 
             $idImage = Product::getCover((int) $idProduct['id_product']);
+            $imageLink = null;
             if (isset($idImage['id_image'])) {
                 $imageLink = $this->context->link->getImageLink($product->link_rewrite, $product->id.'-'.(int) $idImage['id_image'], 'large_default');
                 $imageLink = (!in_array(rtrim(Context::getContext()->shop->virtual_uri, '/'), explode('/', $imageLink))) ? str_replace(
@@ -674,15 +675,17 @@ class Sitemap extends Module
                 ], $imageLink
                 ) : $imageLink;
             }
-            $fileHeaders = (Configuration::get('SITEMAP_CHECK_IMAGE_FILE')) ? @get_headers($imageLink) : true;
+
+
             $imageProduct = [];
-            if (isset($imageLink) && ($fileHeaders[0] != 'HTTP/1.1 404 Not Found' || $fileHeaders === true)) {
+            if ($this->validateImageLink($imageLink)) {
                 $imageProduct = [
                     'title_img' => htmlspecialchars(strip_tags($product->name)),
                     'caption'   => htmlspecialchars(strip_tags($product->description_short)),
                     'link'      => $imageLink,
                 ];
             }
+
             if (!$this->_addLinkToSitemap(
                 $linkSitemap,
                 [
@@ -739,6 +742,7 @@ class Sitemap extends Module
             $category = new Category((int) $categoryId['id_category'], (int) $lang['id_lang']);
             $url = $link->getCategoryLink($category, urlencode($category->link_rewrite), (int) $lang['id_lang']);
 
+            $imageLink = null;
             if ($category->id_image) {
                 $imageLink = $this->context->link->getCatImageLink($category->link_rewrite, (int) $category->id_image, 'category_default');
                 $imageLink = (!in_array(rtrim(Context::getContext()->shop->virtual_uri, '/'), explode('/', $imageLink))) ? str_replace(
@@ -751,9 +755,8 @@ class Sitemap extends Module
                 ], $imageLink
                 ) : $imageLink;
             }
-            $fileHeaders = (Configuration::get('SITEMAP_CHECK_IMAGE_FILE')) ? @get_headers($imageLink) : true;
             $imageCategory = [];
-            if (isset($imageLink) && ($fileHeaders[0] != 'HTTP/1.1 404 Not Found' || $fileHeaders === true)) {
+            if ($this->validateImageLink($imageLink)) {
                 $imageCategory = [
                     'title_img' => htmlspecialchars(strip_tags($category->name)),
                     'link'      => $imageLink,
@@ -838,10 +841,9 @@ class Sitemap extends Module
             ], $imageLink
             ) : $imageLink;
 
-            $fileHeaders = (Configuration::get('SITEMAP_CHECK_IMAGE_FILE')) ? @get_headers($imageLink) : true;
             $manufacturerImage = [];
-            if ($fileHeaders[0] != 'HTTP/1.1 404 Not Found' || $fileHeaders === true) {
-                $manufacturerImage = [
+            if ($this->validateImageLink($imageLink)) {
+            	$manufacturerImage = [
                     'title_img' => htmlspecialchars(strip_tags($manufacturer->name)),
                     'caption'   => htmlspecialchars(strip_tags($manufacturer->short_description)),
                     'link'      => $imageLink,
@@ -942,12 +944,11 @@ class Sitemap extends Module
             ], $imageLink
             ) : $imageLink;
 
-            $fileHeaders = (Configuration::get('SITEMAP_CHECK_IMAGE_FILE')) ? @get_headers($imageLink) : true;
             $supplierImage = [];
-            if ($fileHeaders[0] != 'HTTP/1.1 404 Not Found' || $fileHeaders === true) {
+            if ($this->validateImageLink($imageLink)) {
                 $supplierImage = [
                     'title_img' => htmlspecialchars(strip_tags($supplier->name)),
-                    'link'      => 'http'.(Configuration::get('PS_SSL_ENABLED') ? 's' : '').'://'.Tools::getMediaServer(_THEME_SUP_DIR_)._THEME_SUP_DIR_.((!file_exists(_THEME_SUP_DIR_.'/'.(int) $supplier->id.'-medium_default.jpg')) ? $lang['iso_code'].'-default' : (int) $supplier->id).'-medium_default.jpg',
+                    'link'      => $imageLink
                 ];
             }
             if (!$this->_addLinkToSitemap(
@@ -1085,4 +1086,36 @@ class Sitemap extends Module
             Logger::addLog("sitemap: Failed to ping google: " . $e);
         }
     }
+
+    /**
+     * Validates that image link is correct. If SITEMAP_CHECK_IMAGE_FILE config option is enabled,
+     * then also validates that the image is accessible
+     *
+     * @param string $imageLink
+     * @return boolean
+     * @throws PrestaShopException
+     */
+    protected function validateImageLink($imageLink)
+    {
+        if (! $imageLink) {
+            return false;
+        }
+
+        if (! Configuration::get('SITEMAP_CHECK_IMAGE_FILE')) {
+            return true;
+        }
+
+        try {
+            $guzzle = new GuzzleHttp\Client([
+                'timeout' => 20,
+                'verify' => _PS_TOOL_DIR_ . 'cacert.pem',
+            ]);
+            $response = $guzzle->head($imageLink);
+            $statusCode = $response->getStatusCode();
+            return $statusCode >= 200 && $statusCode < 300;
+        } catch (Exception $ignored) {
+            return false;
+        }
+    }
+
 }
