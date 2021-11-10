@@ -1047,7 +1047,7 @@ class Sitemap extends Module
         foreach ($modulesLinks as $moduleLinks) {
             $links = array_merge($links, $moduleLinks);
         }
-        foreach ($moduleLinks as $n => $link) {
+        foreach ($links as $n => $link) {
             if ($numLink > $n) {
                 continue;
             }
