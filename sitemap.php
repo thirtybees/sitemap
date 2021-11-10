@@ -302,6 +302,7 @@ class Sitemap extends Module
      * @throws HTMLPurifier_Exception
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
+     * @throws Adapter_Exception
      */
     public function createSitemap($idShop = 0)
     {
@@ -353,7 +354,8 @@ class Sitemap extends Module
 
         $this->_createIndexSitemap();
         Configuration::updateValue('SITEMAP_LAST_EXPORT', date('r'));
-        Tools::file_get_contents('http://www.google.com/webmasters/sitemaps/ping?sitemap='.urlencode('http'.(Configuration::get('PS_SSL_ENABLED') ? 's' : '').'://'.Tools::getShopDomain(false, true).$this->context->shop->physical_uri.$this->context->shop->virtual_uri.$this->context->shop->id.'_index_sitemap.xml'));
+
+        $this->pingGoogle($this->context->shop->id);
 
         if ($this->cron) {
             die();
@@ -1059,5 +1061,28 @@ class Sitemap extends Module
         }
 
         return true;
+    }
+
+    /**
+     * Pings google
+     *
+     * @param int $shopId
+     * @throws Adapter_Exception
+     * @throws PrestaShopException
+     */
+    protected function pingGoogle($shopId)
+    {
+        try {
+            $shopId = (int)$shopId;
+            $link = $this->context->link->getBaseLink($shopId) . $shopId.'_index_sitemap.xml';
+            $url = 'https://www.google.com/webmasters/sitemaps/ping?sitemap='.urlencode($link);
+            $guzzle = new GuzzleHttp\Client([
+                'timeout'  => 20,
+                'verify'   => _PS_TOOL_DIR_.'cacert.pem',
+            ]);
+            $guzzle->get($url);
+        } catch (Exception $e) {
+            Logger::addLog("sitemap: Failed to ping google: " . $e);
+        }
     }
 }
