@@ -1,2 +1,6 @@
-*sitemap*.zip
-.idea/
+/translations/*
+!/translations/index.php
+
+/config*.xml
+
+sitemap-*.zip
