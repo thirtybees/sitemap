@@ -80,7 +80,6 @@ class Sitemap extends Module
                 }
             }
         }
-
     }
 
     /**
@@ -221,6 +220,7 @@ class Sitemap extends Module
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @throws SmartyException
+     * @throws Adapter_Exception
      */
     public function getContent()
     {
@@ -241,10 +241,7 @@ class Sitemap extends Module
             $this->createSitemap();
         }
 
-        /* Empty the Shop domain cache */
-        if (method_exists('ShopUrl', 'resetMainDomainCache')) {
-            ShopUrl::resetMainDomainCache();
-        }
+        ShopUrl::resetMainDomainCache();
 
         $this->context->smarty->assign(
             [
