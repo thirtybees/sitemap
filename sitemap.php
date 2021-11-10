@@ -151,16 +151,16 @@ class Sitemap extends Module
     public function uninstall()
     {
         foreach ([
-                     'SITEMAP_PRIORITY_HOME'         => '',
-                     'SITEMAP_PRIORITY_PRODUCT'      => '',
-                     'SITEMAP_PRIORITY_CATEGORY'     => '',
-                     'SITEMAP_PRIORITY_MANUFACTURER' => '',
-                     'SITEMAP_PRIORITY_SUPPLIER'     => '',
-                     'SITEMAP_PRIORITY_CMS'          => '',
-                     'SITEMAP_FREQUENCY'             => '',
-                     'SITEMAP_CHECK_IMAGE_FILE'      => '',
-                     'SITEMAP_LAST_EXPORT'           => '',
-                 ] as $key => $val) {
+                     'SITEMAP_PRIORITY_HOME',
+                     'SITEMAP_PRIORITY_PRODUCT',
+                     'SITEMAP_PRIORITY_CATEGORY',
+                     'SITEMAP_PRIORITY_MANUFACTURER',
+                     'SITEMAP_PRIORITY_SUPPLIER',
+                     'SITEMAP_PRIORITY_CMS',
+                     'SITEMAP_FREQUENCY',
+                     'SITEMAP_CHECK_IMAGE_FILE',
+                     'SITEMAP_LAST_EXPORT',
+                 ] as $key) {
             if (!Configuration::deleteByName($key)) {
                 return false;
             }
@@ -438,12 +438,16 @@ class Sitemap extends Module
      *
      * @param string $page
      *
-     * @return float|string|bool
+     * @return float
      * @throws PrestaShopException
      */
     protected function _getPriorityPage($page)
     {
-        return Configuration::get('SITEMAP_PRIORITY_'.Tools::strtoupper($page)) ? Configuration::get('SITEMAP_PRIORITY_'.Tools::strtoupper($page)) : 0.1;
+        $priority = (float)Configuration::get('SITEMAP_PRIORITY_'.strtoupper($page));
+        if (! $priority) {
+            return 0.1;
+        }
+        return $priority;
     }
 
     /**
