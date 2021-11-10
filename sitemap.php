@@ -102,11 +102,14 @@ class Sitemap extends Module
      * Registers hook(s)
      *
      * @return boolean
+     * @throws Adapter_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function _installHook()
     {
-        $hook = new Hook();
-        $hook->name = self::HOOK_ADD_URLS;
+        $hook = new Hook(Hook::getIdByName(static::HOOK_ADD_URLS));
+        $hook->name = static::HOOK_ADD_URLS;
         $hook->title = 'GSitemap Append URLs';
         $hook->description = 'This hook allows a module to add URLs to a generated sitemap';
         $hook->position = true;
@@ -122,6 +125,8 @@ class Sitemap extends Module
      * Step 3 - Uninstallation of the Addon itself
      *
      * @return boolean Uninstallation result
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function uninstall()
     {
@@ -139,11 +144,6 @@ class Sitemap extends Module
             if (!Configuration::deleteByName($key)) {
                 return false;
             }
-        }
-
-        $hook = new Hook(Hook::getIdByName(self::HOOK_ADD_URLS));
-        if (Validate::isLoadedObject($hook)) {
-            $hook->delete();
         }
 
         return parent::uninstall() && $this->removeSitemap();
@@ -588,7 +588,7 @@ class Sitemap extends Module
      * Hydrate $link_sitemap with products link
      *
      * @param array  $linkSitemap contain all the links for the Google Sitemap file to be generated
-     * @param string $lang        language of link to add
+     * @param array  $lang        language of link to add
      * @param int    $index       index of the current Google Sitemap file
      * @param int    $i           count of elements added to sitemap main array
      * @param int    $idProduct   product object identifier
