@@ -171,18 +171,29 @@ class Sitemap extends Module
      */
     public function removeSitemap()
     {
-        try {
-            $links = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS('SELECT * FROM `'._DB_PREFIX_.'sitemap_sitemap`');
-            if ($links) {
-                foreach ($links as $link) {
-                    if (!@unlink($this->normalizeDirectory(_PS_ROOT_DIR_).$link['link'])) {
-                        return false;
-                    }
+        $rootDir = $this->normalizeDirectory(_PS_ROOT_DIR_);
+
+        // delete individual sitemap xml files
+        $links = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS('SELECT link FROM `'._DB_PREFIX_.'sitemap_sitemap`');
+        if (is_array($links)) {
+            foreach ($links as $link) {
+                $filename = $rootDir . $link['link'];
+                if (file_exists($filename)) {
+                    @unlink($filename);
                 }
             }
-        } catch (Exception $e) {
         }
 
+        // delete index sitemap files
+        foreach (Shop::getShops() as $shop) {
+            $id = (int)$shop['id_shop'];
+            $filename = $rootDir . $id . '_index_sitemap.xml';
+            if (file_exists($filename)) {
+                @unlink($filename);
+            }
+        }
+
+        // drop database
         if (!Db::getInstance()->execute('DROP TABLE IF EXISTS `'._DB_PREFIX_.'sitemap_sitemap`')) {
             return false;
         }
@@ -302,7 +313,7 @@ class Sitemap extends Module
     public function createSitemap($idShop = 0)
     {
         if (@fopen($this->normalizeDirectory(_PS_ROOT_DIR_).'/test.txt', 'w') == false) {
-            $this->context->smarty->assign('google_maps_error', $this->l('An error occured while trying to check your file permissions. Please adjust your permissions to allow thirty bees to write a file in your root directory.'));
+            $this->context->smarty->assign('google_maps_error', $this->l('An error occurred while trying to check your file permissions. Please adjust your permissions to allow thirty bees to write a file in your root directory.'));
 
             return false;
         } else {
@@ -828,7 +839,6 @@ class Sitemap extends Module
      * @param int    $idManufacturer manufacturer object identifier
      *
      * @return bool
-     * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      */
     protected function _getManufacturerLink(&$linkSitemap, $lang, &$index, &$i, $idManufacturer = 0)
@@ -905,7 +915,6 @@ class Sitemap extends Module
      * @param int    $idSupplier  supplier object identifier
      *
      * @return bool
-     * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      */
     protected function _getSupplierLink(&$linkSitemap, $lang, &$index, &$i, $idSupplier = 0)
