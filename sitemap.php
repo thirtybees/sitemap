@@ -43,11 +43,6 @@ class Sitemap extends Module
     public $cron = false;
 
     /**
-     * @var array
-     */
-    protected $type_array = [];
-
-    /**
      * Gsitemap constructor.
      * @throws PrestaShopException
      */
@@ -63,18 +58,6 @@ class Sitemap extends Module
 
         $this->displayName = $this->l('Sitemap');
         $this->description = $this->l('Generate your sitemap file');
-
-        $this->type_array = ['home', 'meta', 'product', 'category', 'manufacturer', 'supplier', 'cms', 'module'];
-
-        $metas = Db::getInstance()->ExecuteS('SELECT * FROM `'._DB_PREFIX_.'meta` ORDER BY `id_meta` ASC');
-        $disabledMetas = explode(',', Configuration::get('SITEMAP_DISABLE_LINKS'));
-        foreach ($metas as $meta) {
-            if (in_array($meta['id_meta'], $disabledMetas)) {
-                if (($key = array_search($meta['page'], $this->type_array)) !== false) {
-                    unset($this->type_array[$key]);
-                }
-            }
-        }
     }
 
     /**
@@ -342,7 +325,7 @@ class Sitemap extends Module
             $this->context->language = new Language($lang['id_lang']);
 
             $linkSitemap = [];
-            foreach ($this->type_array as $typeVal) {
+            foreach ($this->getAllowedLinkTypes() as $typeVal) {
                 if ($type == '' || $type == $typeVal) {
                     $function = '_get'.ucfirst($typeVal).'Link';
                     if (!$this->$function($linkSitemap, $lang, $index, $i, $idObj)) {
@@ -659,9 +642,9 @@ class Sitemap extends Module
             ->where('id_meta > ' . (int)$idMeta)
             ->orderBy('id_meta ASC');
 
-        $disabled = array_filter(array_map('intval', explode(',', Configuration::get('SITEMAP_DISABLE_LINKS'))));
-        if ($disabled) {
-            $query->where('id_meta NOT IN (' . implode(',', $disabled).')');
+        $disabledMetas = $this->getDisabledMetas();
+        if ($disabledMetas) {
+            $query->where('id_meta NOT IN (' . implode(',', $disabledMetas).')');
         }
 
         $metas = Db::getInstance()->ExecuteS($query);
@@ -1221,6 +1204,40 @@ class Sitemap extends Module
             return array_map('intval', array_column($results, $idColumn));
         }
         return [];
+    }
+
+    /**
+     * Returns link types that are allowed for generation
+     *
+     * @return array
+     * @throws PrestaShopException
+     */
+    protected function getAllowedLinkTypes()
+    {
+        static $typeArray = null;
+        if (is_null($typeArray)) {
+            $typeArray = ['home', 'meta', 'product', 'category', 'manufacturer', 'supplier', 'cms', 'module'];
+
+            $metas = Meta::getMetas();
+            $disabledMetas = $this->getDisabledMetas();
+            foreach ($metas as $meta) {
+                if (in_array($meta['id_meta'], $disabledMetas)) {
+                    if (($key = array_search($meta['page'], $typeArray)) !== false) {
+                        unset($typeArray[$key]);
+                    }
+                }
+            }
+        }
+        return $typeArray;
+    }
+
+    /**
+     * @return int[]
+     * @throws PrestaShopException
+     */
+    protected function getDisabledMetas()
+    {
+        return array_filter(array_map('intval', explode(',', Configuration::get('SITEMAP_DISABLE_LINKS'))));
     }
 
 }
