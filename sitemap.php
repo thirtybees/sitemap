@@ -224,6 +224,8 @@ class Sitemap extends Module
      */
     public function getContent()
     {
+        ShopUrl::resetMainDomainCache();
+
         /* Store the posted parameters and generate a new Google Sitemap files for the current Shop */
         if (Tools::isSubmit('SubmitGsitemap')) {
             Configuration::updateValue('SITEMAP_FREQUENCY', Tools::getValue('sitemap_frequency'));
@@ -240,8 +242,6 @@ class Sitemap extends Module
         elseif (Tools::getValue('continue')) {
             $this->createSitemap();
         }
-
-        ShopUrl::resetMainDomainCache();
 
         $this->context->smarty->assign(
             [
@@ -317,6 +317,7 @@ class Sitemap extends Module
         if ($idShop != 0) {
             $this->context->shop = new Shop((int) $idShop);
         }
+        ShopUrl::resetMainDomainCache();
 
         $type = Tools::getValue('type') ? Tools::getValue('type') : '';
         $languages = Language::getLanguages(true, $idShop);
@@ -330,6 +331,9 @@ class Sitemap extends Module
             } elseif ($langStop && $lang['iso_code'] == Tools::getValue('lang')) {
                 $langStop = false;
             }
+
+            // set language
+            $this->context->language = new Language($lang['id_lang']);
 
             $linkSitemap = [];
             foreach ($this->type_array as $typeVal) {
@@ -695,10 +699,6 @@ class Sitemap extends Module
     protected function _getProductLink(&$linkSitemap, $lang, &$index, &$i, $idProduct = 0)
     {
         $link = $this->context->link;
-        if (method_exists('ShopUrl', 'resetMainDomainCache')) {
-            ShopUrl::resetMainDomainCache();
-        }
-
         $idProducts = Db::getInstance()->ExecuteS('SELECT `id_product` FROM `'._DB_PREFIX_.'product_shop` WHERE `id_product` >= '.intval($idProduct).' AND `active` = 1 AND `visibility` != \'none\' AND `id_shop`='.$this->context->shop->id.' ORDER BY `id_product` ASC');
 
         foreach ($idProducts as $idProduct) {
@@ -768,11 +768,7 @@ class Sitemap extends Module
      */
     protected function _getCategoryLink(&$linkSitemap, $lang, &$index, &$i, $idCategory = 0)
     {
-        $link = new Link();
-        if (method_exists('ShopUrl', 'resetMainDomainCache')) {
-            ShopUrl::resetMainDomainCache();
-        }
-
+        $link = $this->context->link;
         $rootCategoryId = (int) Configuration::get('PS_ROOT_CATEGORY');
         $homeCategoryId = (int) Configuration::get('PS_HOME_CATEGORY');
         $categoryIds = Db::getInstance()->ExecuteS(
@@ -838,9 +834,6 @@ class Sitemap extends Module
     protected function _getManufacturerLink(&$linkSitemap, $lang, &$index, &$i, $idManufacturer = 0)
     {
         $link = $this->context->link;
-        if (method_exists('ShopUrl', 'resetMainDomainCache')) {
-            ShopUrl::resetMainDomainCache();
-        }
         $manufacturersId = Db::getInstance()->ExecuteS(
             'SELECT m.`id_manufacturer` FROM `'._DB_PREFIX_.'manufacturer` m
 			INNER JOIN `'._DB_PREFIX_.'manufacturer_lang` ml on m.`id_manufacturer` = ml.`id_manufacturer`'.
@@ -947,10 +940,7 @@ class Sitemap extends Module
      */
     protected function _getSupplierLink(&$linkSitemap, $lang, &$index, &$i, $idSupplier = 0)
     {
-        $link = new Link();
-        if (method_exists('ShopUrl', 'resetMainDomainCache')) {
-            ShopUrl::resetMainDomainCache();
-        }
+        $link = $this->context->link;
         $suppliersId = Db::getInstance()->ExecuteS(
             'SELECT s.`id_supplier` FROM `'._DB_PREFIX_.'supplier` s
 			INNER JOIN `'._DB_PREFIX_.'supplier_lang` sl ON s.`id_supplier` = sl.`id_supplier` '.
@@ -1010,10 +1000,7 @@ class Sitemap extends Module
      */
     protected function _getCmsLink(&$linkSitemap, $lang, &$index, &$i, $idCms = 0)
     {
-        $link = new Link();
-        if (method_exists('ShopUrl', 'resetMainDomainCache')) {
-            ShopUrl::resetMainDomainCache();
-        }
+        $link = $this->context->link;
         $cmssId = Db::getInstance()->ExecuteS(
             'SELECT c.`id_cms` FROM `'._DB_PREFIX_.'cms` c INNER JOIN `'._DB_PREFIX_.'cms_lang` cl ON c.`id_cms` = cl.`id_cms` '.
             ($this->tableColumnExists(_DB_PREFIX_.'supplier_shop') ? 'INNER JOIN `'._DB_PREFIX_.'cms_shop` cs ON c.`id_cms` = cs.`id_cms` ' : '').
