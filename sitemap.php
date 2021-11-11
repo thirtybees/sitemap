@@ -569,18 +569,12 @@ class Sitemap extends Module
      */
     protected function _getHomeLink(&$linkSitemap, $lang, &$index, &$i)
     {
-        if (Configuration::get('PS_SSL_ENABLED')) {
-            $protocol = 'https://';
-        } else {
-            $protocol = 'http://';
-        }
-
-        return $this->_addLinkToSitemap(
+       return $this->_addLinkToSitemap(
             $linkSitemap,
             [
                 'type'  => 'home',
                 'page'  => 'home',
-                'link'  => $protocol.Tools::getShopDomainSsl(false).$this->context->shop->getBaseURI().(method_exists('Language', 'isMultiLanguageActivated') ? Language::isMultiLanguageActivated() ? $lang['iso_code'].'/' : '' : '')
+                'link'  => $this->context->link->getPageLink('index')
             ],
             $lang['iso_code'],
             $index,
@@ -651,24 +645,35 @@ class Sitemap extends Module
      */
     protected function _getMetaLink(&$linkSitemap, $lang, &$index, &$i, $idMeta = 0)
     {
-        if (method_exists('ShopUrl', 'resetMainDomainCache')) {
-            ShopUrl::resetMainDomainCache();
+        $link = $this->context->link;
+        $query = (new DbQuery())
+            ->select('page')
+            ->from('meta')
+            ->where('configurable > 0')
+            ->where('id_meta > ' . (int)$idMeta)
+            ->orderBy('id_meta ASC');
+
+        $disabled = array_filter(array_map('intval', explode(',', Configuration::get('SITEMAP_DISABLE_LINKS'))));
+        if ($disabled) {
+            $query->where('id_meta NOT IN (' . implode(',', $disabled).')');
         }
-        $metas = Db::getInstance()->ExecuteS('SELECT * FROM `'._DB_PREFIX_.'meta` WHERE `configurable` > 0 AND `id_meta` >= '.(int) $idMeta.' ORDER BY `id_meta` ASC');
-        foreach ($metas as $meta) {
-            $url = '';
-            if (!in_array($meta['id_meta'], explode(',', Configuration::get('SITEMAP_DISABLE_LINKS')))) {
-                $urlRewrite = Db::getInstance()->getValue('SELECT url_rewrite, id_shop FROM `'._DB_PREFIX_.'meta_lang` WHERE `id_meta` = '.(int) $meta['id_meta'].' AND `id_shop` ='.(int) $this->context->shop->id.' AND `id_lang` = '.(int) $lang['id_lang']);
-                Dispatcher::getInstance()->addRoute($meta['page'], (isset($urlRewrite) ? $urlRewrite : $meta['page']), $meta['page'], $lang['id_lang']);
-                $uriPath = Dispatcher::getInstance()->createUrl($meta['page'], $lang['id_lang'], [], (bool) Configuration::get('PS_REWRITING_SETTINGS'));
-                $url .= Tools::getShopDomainSsl(true).(($this->context->shop->virtual_uri) ? __PS_BASE_URI__.$this->context->shop->virtual_uri : __PS_BASE_URI__).(Language::isMultiLanguageActivated() ? $lang['iso_code'].'/' : '').ltrim($uriPath, '/');
+
+        $metas = Db::getInstance()->ExecuteS($query);
+        if (is_array($metas)) {
+            foreach ($metas as $meta) {
+                $page = $meta['page'];
+                if (preg_match('#module-([a-z0-9_-]+)-([a-z0-9_]+)$#i', $page, $m)) {
+                    $url = $link->getModuleLink($m[1], $m[2]);
+                } else {
+                    $url = $link->getPageLink($page);
+                }
 
                 if (!$this->_addLinkToSitemap(
                     $linkSitemap,
                     [
-                        'type'  => 'meta',
-                        'page'  => $meta['page'],
-                        'link'  => $url
+                        'type' => 'meta',
+                        'page' => $page,
+                        'link' => $url
                     ],
                     $lang['iso_code'],
                     $index,
