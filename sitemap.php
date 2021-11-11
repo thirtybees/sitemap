@@ -45,11 +45,6 @@ class Sitemap extends Module
     /**
      * @var array
      */
-    protected $sql_checks = [];
-
-    /**
-     * @var array
-     */
     protected $type_array = [];
 
     /**
@@ -778,8 +773,8 @@ class Sitemap extends Module
         $homeCategoryId = (int) Configuration::get('PS_HOME_CATEGORY');
         $categoryIds = Db::getInstance()->ExecuteS(
             'SELECT c.id_category FROM `'._DB_PREFIX_.'category` c
-				INNER JOIN `'._DB_PREFIX_.'category_shop` cs ON c.`id_category` = cs.`id_category`
-				WHERE c.`id_category` >= '.(int) $idCategory.' AND c.`active` = 1 AND c.`id_category` != '.$rootCategoryId.' AND c.`id_category` != '.$homeCategoryId.' AND c.id_parent > 0 AND c.`id_category` > 0 AND cs.`id_shop` = '.(int) $this->context->shop->id.' AND c.`is_root_category` != 1 ORDER BY c.`id_category` ASC'
+                INNER JOIN `'._DB_PREFIX_.'category_shop` cs ON c.`id_category` = cs.`id_category`
+                WHERE c.`id_category` >= '.(int) $idCategory.' AND c.`active` = 1 AND c.`id_category` != '.$rootCategoryId.' AND c.`id_category` != '.$homeCategoryId.' AND c.id_parent > 0 AND c.`id_category` > 0 AND cs.`id_shop` = '.(int) $this->context->shop->id.' AND c.`is_root_category` != 1 ORDER BY c.`id_category` ASC'
         );
 
         foreach ($categoryIds as $categoryId) {
@@ -839,17 +834,20 @@ class Sitemap extends Module
     protected function _getManufacturerLink(&$linkSitemap, $lang, &$index, &$i, $idManufacturer = 0)
     {
         $link = $this->context->link;
-        $manufacturersId = Db::getInstance()->ExecuteS(
-            'SELECT m.`id_manufacturer` FROM `'._DB_PREFIX_.'manufacturer` m
-			INNER JOIN `'._DB_PREFIX_.'manufacturer_lang` ml on m.`id_manufacturer` = ml.`id_manufacturer`'.
-            ($this->tableColumnExists(_DB_PREFIX_.'manufacturer_shop') ? ' INNER JOIN `'._DB_PREFIX_.'manufacturer_shop` ms ON m.`id_manufacturer` = ms.`id_manufacturer` ' : '').
-            ' WHERE m.`active` = 1  AND m.`id_manufacturer` >= '.(int) $idManufacturer.
-            ($this->tableColumnExists(_DB_PREFIX_.'manufacturer_shop') ? ' AND ms.`id_shop` = '.(int) $this->context->shop->id : '').
-            ' AND ml.`id_lang` = '.(int) $lang['id_lang'].
-            ' ORDER BY m.`id_manufacturer` ASC'
+        $manufacturersId = $this->getIds(
+            'SELECT m.`id_manufacturer` AS `id`
+            FROM `'._DB_PREFIX_.'manufacturer` m
+            INNER JOIN `'._DB_PREFIX_.'manufacturer_lang` ml on m.`id_manufacturer` = ml.`id_manufacturer`
+            INNER JOIN `'._DB_PREFIX_.'manufacturer_shop` ms ON m.`id_manufacturer` = ms.`id_manufacturer`
+            WHERE m.`active` = 1
+            AND m.`id_manufacturer` >= '.(int) $idManufacturer.'
+            AND ms.`id_shop` = '.(int) $this->context->shop->id . '
+            AND ml.`id_lang` = '.(int) $lang['id_lang'].'
+            ORDER BY m.`id_manufacturer` ASC'
         );
-        foreach ($manufacturersId as $manufacturerId) {
-            $id = (int) $manufacturerId['id_manufacturer'];
+
+        foreach ($manufacturersId as $id) {
+
             // Check if manufacturer has any active product
             $query = new \DbQuery();
             $query->select('COUNT(*)');
@@ -872,7 +870,7 @@ class Sitemap extends Module
 
             $manufacturerImage = [];
             if ($this->validateImageLink($imageLink)) {
-            	$manufacturerImage = [
+                $manufacturerImage = [
                     'title_img' => $manufacturer->name,
                     'caption'   => $manufacturer->short_description,
                     'link'      => $imageLink,
@@ -890,43 +888,10 @@ class Sitemap extends Module
                 $lang['iso_code'],
                 $index,
                 $i,
-                $manufacturerId['id_manufacturer']
+                $id
             )) {
                 return false;
             }
-        }
-
-        return true;
-    }
-
-    /**
-     * @param string $tableName
-     * @param string $column
-     * @return bool|mixed
-     * @throws PrestaShopDatabaseException
-     * @throws PrestaShopException
-     */
-    protected function tableColumnExists($tableName, $column = null)
-    {
-        if (array_key_exists($tableName, $this->sql_checks)) {
-            if (!empty($column) && array_key_exists($column, $this->sql_checks[$tableName])) {
-                return $this->sql_checks[$tableName][$column];
-            } else {
-                return $this->sql_checks[$tableName];
-            }
-        }
-
-        $table = Db::getInstance()->ExecuteS('SHOW TABLES LIKE \''.$tableName.'\'');
-        if (empty($column)) {
-            if (count($table) < 1) {
-                return $this->sql_checks[$tableName] = false;
-            } else {
-                $this->sql_checks[$tableName] = true;
-            }
-        } else {
-            $table = Db::getInstance()->ExecuteS('SELECT * FROM `'.$tableName.'` LIMIT 1');
-
-            return $this->sql_checks[$tableName][$column] = array_key_exists($column, current($table));
         }
 
         return true;
@@ -946,17 +911,18 @@ class Sitemap extends Module
     protected function _getSupplierLink(&$linkSitemap, $lang, &$index, &$i, $idSupplier = 0)
     {
         $link = $this->context->link;
-        $suppliersId = Db::getInstance()->ExecuteS(
-            'SELECT s.`id_supplier` FROM `'._DB_PREFIX_.'supplier` s
-			INNER JOIN `'._DB_PREFIX_.'supplier_lang` sl ON s.`id_supplier` = sl.`id_supplier` '.
-            ($this->tableColumnExists(_DB_PREFIX_.'supplier_shop') ? 'INNER JOIN `'._DB_PREFIX_.'supplier_shop` ss ON s.`id_supplier` = ss.`id_supplier`' : '').'
-			WHERE s.`active` = 1 AND s.`id_supplier` >= '.(int) $idSupplier.
-            ($this->tableColumnExists(_DB_PREFIX_.'supplier_shop') ? ' AND ss.`id_shop` = '.(int) $this->context->shop->id : '').'
-			AND sl.`id_lang` = '.(int) $lang['id_lang'].'
-			ORDER BY s.`id_supplier` ASC'
+        $suppliersId = $this->getIds(
+            'SELECT s.`id_supplier` as `id`
+            FROM `'._DB_PREFIX_.'supplier` s
+            INNER JOIN `'._DB_PREFIX_.'supplier_lang` sl ON s.`id_supplier` = sl.`id_supplier`
+            INNER JOIN `'._DB_PREFIX_.'supplier_shop` ss ON s.`id_supplier` = ss.`id_supplier`
+            WHERE s.`active` = 1 
+            AND s.`id_supplier` >= '.(int) $idSupplier.'
+            AND ss.`id_shop` = '.(int) $this->context->shop->id.'
+            AND sl.`id_lang` = '.(int) $lang['id_lang'].'
+            ORDER BY s.`id_supplier` ASC'
         );
-        foreach ($suppliersId as $supplierId) {
-            $id = (int) $supplierId['id_supplier'];
+        foreach ($suppliersId as $id) {
             $supplier = new Supplier($id, $lang['id_lang']);
             $url = $link->getSupplierLink($supplier, $supplier->link_rewrite, $lang['id_lang']);
 
@@ -973,15 +939,19 @@ class Sitemap extends Module
                 ];
             }
             if (!$this->_addLinkToSitemap(
-                $linkSitemap, [
-                'type'    => 'supplier',
-                'page'    => 'supplier',
-                'lastmod' => $supplier->date_upd,
-                'link'    => $url,
-                'image'   => $supplierImage,
-            ], $lang['iso_code'], $index, $i, $supplierId['id_supplier']
-            )
-            ) {
+                $linkSitemap,
+                [
+                    'type'    => 'supplier',
+                    'page'    => 'supplier',
+                    'lastmod' => $supplier->date_upd,
+                    'link'    => $url,
+                    'image'   => $supplierImage,
+                ],
+                $lang['iso_code'],
+                $index,
+                $i,
+                $id
+            )) {
                 return false;
             }
         }
@@ -1006,37 +976,39 @@ class Sitemap extends Module
     protected function _getCmsLink(&$linkSitemap, $lang, &$index, &$i, $idCms = 0)
     {
         $link = $this->context->link;
-        $cmssId = Db::getInstance()->ExecuteS(
-            'SELECT c.`id_cms` FROM `'._DB_PREFIX_.'cms` c INNER JOIN `'._DB_PREFIX_.'cms_lang` cl ON c.`id_cms` = cl.`id_cms` '.
-            ($this->tableColumnExists(_DB_PREFIX_.'supplier_shop') ? 'INNER JOIN `'._DB_PREFIX_.'cms_shop` cs ON c.`id_cms` = cs.`id_cms` ' : '').
-            'INNER JOIN `'._DB_PREFIX_.'cms_category` cc ON c.id_cms_category = cc.id_cms_category AND cc.active = 1
-				WHERE c.`active` =1 AND c.`indexation` =1 AND c.`id_cms` >= '.(int) $idCms.
-            ($this->tableColumnExists(_DB_PREFIX_.'supplier_shop') ? ' AND cs.id_shop = '.(int) $this->context->shop->id : '').
-            ' AND cl.`id_lang` = '.(int) $lang['id_lang'].
-            ' ORDER BY c.`id_cms` ASC'
+        $cmssId = $this->getIds(
+            'SELECT c.`id_cms` as `id`
+            FROM `'._DB_PREFIX_.'cms` c
+            INNER JOIN `'._DB_PREFIX_.'cms_lang` cl ON c.`id_cms` = cl.`id_cms`
+            INNER JOIN `'._DB_PREFIX_.'cms_shop` cs ON c.`id_cms` = cs.`id_cms`
+            INNER JOIN `'._DB_PREFIX_.'cms_category` cc ON c.id_cms_category = cc.id_cms_category AND cc.active = 1
+            WHERE c.`active` =1 
+            AND c.`indexation` = 1 
+            AND c.`id_cms` >= '.(int) $idCms.'
+            AND cs.id_shop = '.(int) $this->context->shop->id.'
+            AND cl.`id_lang` = '.(int) $lang['id_lang'].'
+            ORDER BY c.`id_cms` ASC'
         );
 
-        if (is_array($cmssId)) {
-            foreach ($cmssId as $cmsId) {
-                $cms = new CMS((int) $cmsId['id_cms'], $lang['id_lang']);
-                $cms->link_rewrite = urlencode((is_array($cms->link_rewrite) ? $cms->link_rewrite[(int) $lang['id_lang']] : $cms->link_rewrite));
-                $url = $link->getCMSLink($cms, null, null, $lang['id_lang']);
+        foreach ($cmssId as $id) {
+            $cms = new CMS($id, $lang['id_lang']);
+            $cms->link_rewrite = urlencode((is_array($cms->link_rewrite) ? $cms->link_rewrite[(int) $lang['id_lang']] : $cms->link_rewrite));
+            $url = $link->getCMSLink($cms, null, null, $lang['id_lang']);
 
-                if (!$this->_addLinkToSitemap(
-                    $linkSitemap,
-                    [
-                        'type'  => 'cms',
-                        'page'  => 'cms',
-                        'link'  => $url,
-                        'image' => false,
-                    ],
-                    $lang['iso_code'],
-                    $index,
-                    $i,
-                    $cmsId['id_cms']
-                )) {
-                    return false;
-                }
+            if (!$this->_addLinkToSitemap(
+                $linkSitemap,
+                [
+                    'type'  => 'cms',
+                    'page'  => 'cms',
+                    'link'  => $url,
+                    'image' => false,
+                ],
+                $lang['iso_code'],
+                $index,
+                $i,
+                $id
+            )) {
+                return false;
             }
         }
 
@@ -1225,6 +1197,21 @@ class Sitemap extends Module
             }
         }
         return $types;
+    }
+
+    /**
+     * @param string $sql
+     * @param string $idColumn
+     * @return int[]
+     * @throws PrestaShopException
+     */
+    protected function getIds($sql, $idColumn='id')
+    {
+        $results = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($sql);
+        if (is_array($results)) {
+            return array_map('intval', array_column($results, $idColumn));
+        }
+        return [];
     }
 
 }
