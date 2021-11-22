@@ -756,6 +756,18 @@ class Sitemap extends Module
             ' ORDER BY m.`id_manufacturer` ASC'
         );
         foreach ($manufacturersId as $manufacturerId) {
+            // Check if manufacturer has any active product
+            $query = new \DbQuery();
+            $query->select('COUNT(*)');
+            $query->from('product', 'p');
+            $query->innerJoin('product_shop', 'ps', 'p.id_product=ps.id_product AND ps.id_shop='.\Context::getContext()->shop->id);
+            $query->where('p.id_manufacturer = ' . $manufacturerId['id_manufacturer']);
+            $query->where('ps.active = 1');
+
+            if (!\Db::getInstance()->getValue($query)) {
+                continue;
+            }
+
             $manufacturer = new Manufacturer((int) $manufacturerId['id_manufacturer'], $lang['id_lang']);
             $url = $link->getManufacturerLink($manufacturer, $manufacturer->link_rewrite, $lang['id_lang']);
 
@@ -771,9 +783,9 @@ class Sitemap extends Module
             ) : $imageLink;
 
             $fileHeaders = (Configuration::get('SITEMAP_CHECK_IMAGE_FILE')) ? @get_headers($imageLink) : true;
-            $manifacturerImage = [];
+            $manufacturerImage = [];
             if ($fileHeaders[0] != 'HTTP/1.1 404 Not Found' || $fileHeaders === true) {
-                $manifacturerImage = [
+                $manufacturerImage = [
                     'title_img' => htmlspecialchars(strip_tags($manufacturer->name)),
                     'caption'   => htmlspecialchars(strip_tags($manufacturer->short_description)),
                     'link'      => $imageLink,
@@ -786,7 +798,7 @@ class Sitemap extends Module
                     'page'    => 'manufacturer',
                     'lastmod' => $manufacturer->date_upd,
                     'link'    => $url,
-                    'image'   => $manifacturerImage,
+                    'image'   => $manufacturerImage,
                 ],
                 $lang['iso_code'],
                 $index,
