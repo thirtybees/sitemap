@@ -67,7 +67,6 @@ class Sitemap extends Module
      * Step 2 - Install the Addon and create a database table to store Sitemap files name by shop
      *
      * @return boolean Installation result
-     * @throws Adapter_Exception
      * @throws HTMLPurifier_Exception
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
@@ -99,7 +98,6 @@ class Sitemap extends Module
      * Registers hook(s)
      *
      * @return boolean
-     * @throws Adapter_Exception
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      */
@@ -209,7 +207,6 @@ class Sitemap extends Module
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @throws SmartyException
-     * @throws Adapter_Exception
      */
     public function getContent()
     {
@@ -291,7 +288,6 @@ class Sitemap extends Module
      * @throws HTMLPurifier_Exception
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
-     * @throws Adapter_Exception
      */
     public function createSitemap($idShop = 0)
     {
@@ -379,7 +375,7 @@ class Sitemap extends Module
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'.PHP_EOL
         ));
 
-        foreach ($linkSitemap as $key => $file) {
+        foreach ($linkSitemap as $file) {
             fwrite($writeFd, '  <url>'.PHP_EOL);
             $lastModification = (isset($file['lastmod']) && !empty($file['lastmod'])) ? date('c', strtotime($file['lastmod'])) : null;
             $this->_addSitemapNode(
@@ -533,16 +529,21 @@ class Sitemap extends Module
         }
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></sitemapindex>';
-        $xmlFeed = new SimpleXMLElement($xml);
+        try {
+            $xmlFeed = new SimpleXMLElement($xml);
 
-        foreach ($sitemaps as $link) {
-            $sitemap = $xmlFeed->addChild('sitemap');
-            $sitemap->addChild('loc', 'http'.(Configuration::get('PS_SSL_ENABLED') ? 's' : '').'://'.Tools::getShopDomain(false, true).__PS_BASE_URI__.$link['link']);
-            $sitemap->addChild('lastmod', date('c'));
+            foreach ($sitemaps as $link) {
+                $sitemap = $xmlFeed->addChild('sitemap');
+                $sitemap->addChild('loc', 'http' . (Configuration::get('PS_SSL_ENABLED') ? 's' : '') . '://' . Tools::getShopDomain(false, true) . __PS_BASE_URI__ . $link['link']);
+                $sitemap->addChild('lastmod', date('c'));
+            }
+            file_put_contents($this->normalizeDirectory(_PS_ROOT_DIR_) . $this->context->shop->id . '_index_sitemap.xml', $xmlFeed->asXML());
+            return true;
+        } catch (Exception $e) {
+            Logger::addLog("sitemap: Failed to create index sitemap: " . $e);
+            return false;
         }
-        file_put_contents($this->normalizeDirectory(_PS_ROOT_DIR_).$this->context->shop->id.'_index_sitemap.xml', $xmlFeed->asXML());
 
-        return true;
     }
 
     /**
@@ -842,14 +843,14 @@ class Sitemap extends Module
         foreach ($manufacturersId as $id) {
 
             // Check if manufacturer has any active product
-            $query = new \DbQuery();
+            $query = new DbQuery();
             $query->select('COUNT(*)');
             $query->from('product', 'p');
-            $query->innerJoin('product_shop', 'ps', 'p.id_product=ps.id_product AND ps.id_shop='.\Context::getContext()->shop->id);
+            $query->innerJoin('product_shop', 'ps', 'p.id_product=ps.id_product AND ps.id_shop='. Context::getContext()->shop->id);
             $query->where('p.id_manufacturer = ' . $id);
             $query->where('ps.active = 1');
 
-            if (!\Db::getInstance()->getValue($query)) {
+            if (! Db::getInstance()->getValue($query)) {
                 continue;
             }
 
@@ -961,7 +962,6 @@ class Sitemap extends Module
      * @param int    $idCms       the CMS object identifier
      *
      * @return bool
-     * @throws Adapter_Exception
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      */
@@ -1050,7 +1050,6 @@ class Sitemap extends Module
      * Pings google
      *
      * @param int $shopId
-     * @throws Adapter_Exception
      * @throws PrestaShopException
      */
     protected function pingGoogle($shopId)
@@ -1065,6 +1064,8 @@ class Sitemap extends Module
             ]);
             $guzzle->get($url);
         } catch (Exception $e) {
+            Logger::addLog("sitemap: Failed to ping google: " . $e);
+        } catch (\GuzzleHttp\Exception\GuzzleException $e) {
             Logger::addLog("sitemap: Failed to ping google: " . $e);
         }
     }
@@ -1096,6 +1097,8 @@ class Sitemap extends Module
             $statusCode = $response->getStatusCode();
             return $statusCode >= 200 && $statusCode < 300;
         } catch (Exception $ignored) {
+            return false;
+        } catch (\GuzzleHttp\Exception\GuzzleException $e) {
             return false;
         }
     }
