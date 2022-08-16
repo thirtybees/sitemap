@@ -238,7 +238,7 @@ class Sitemap extends Module
                 'sitemap_store_url'        => 'http://'.Tools::getShopDomain(false, true).__PS_BASE_URI__,
                 'sitemap_links'            => Db::getInstance()->ExecuteS('SELECT * FROM `'._DB_PREFIX_.'sitemap_sitemap` WHERE id_shop = '.(int) $this->context->shop->id),
                 'store_metas'              => Meta::getMetasByIdLang((int) $this->context->language->id),
-                'sitemap_disable_metas'    => explode(',', Configuration::get('SITEMAP_DISABLE_LINKS')),
+                'sitemap_disable_metas'    => $this->getDisabledMetas(),
                 'sitemap_customer_limit'   => [
                     'max_exec_time' => (int) ini_get('max_execution_time'),
                 ],
@@ -1240,7 +1240,10 @@ class Sitemap extends Module
      */
     protected function getDisabledMetas()
     {
-        return array_filter(array_map('intval', explode(',', Configuration::get('SITEMAP_DISABLE_LINKS'))));
+        $disabledLink = Configuration::get('SITEMAP_DISABLE_LINKS');
+        if ($disabledLink) {
+            return array_filter(array_map('intval', explode(',', $disabledLink)));
+        }
+        return [];
     }
-
 }
