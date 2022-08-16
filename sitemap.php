@@ -381,7 +381,7 @@ class Sitemap extends Module
             $this->_addSitemapNode(
                 $writeFd,
                 $this->escapeProperty('link', $file),
-                $this->_getPriorityPage($file['page']),
+                $this->_getPriorityPage($this->resolvePage($file)),
                 Configuration::get('SITEMAP_FREQUENCY'),
                 $lastModification
             );
@@ -1030,14 +1030,17 @@ class Sitemap extends Module
             return true;
         }
         $links = [];
-        foreach ($modulesLinks as $moduleLinks) {
+        foreach ($modulesLinks as $moduleName => $moduleLinks) {
+            foreach ($moduleLinks as &$moduleLink) {
+                $moduleLink['type'] = 'module';
+                $moduleLink['moduleName'] = $moduleName;
+            }
             $links = array_merge($links, $moduleLinks);
         }
         foreach ($links as $n => $link) {
             if ($numLink > $n) {
                 continue;
             }
-            $link['type'] = 'module';
             if (!$this->_addLinkToSitemap($linkSitemap, $link, $lang['iso_code'], $index, $i, $n)) {
                 return false;
             }
@@ -1246,4 +1249,20 @@ class Sitemap extends Module
         }
         return [];
     }
+
+    /**
+     * @param array $link
+     * @return string
+     */
+    protected function resolvePage($link)
+    {
+        if (isset($link['page'])) {
+            return $link['page'];
+        }
+        if (isset($link['moduleName'])) {
+            return $link['moduleName'];
+        }
+        return 'unknown-page';
+    }
+
 }
