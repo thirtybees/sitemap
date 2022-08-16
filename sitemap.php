@@ -637,7 +637,7 @@ class Sitemap extends Module
     {
         $link = $this->context->link;
         $query = (new DbQuery())
-            ->select('page')
+            ->select('id_meta, page')
             ->from('meta')
             ->where('configurable > 0')
             ->where('id_meta > ' . (int)$idMeta)
