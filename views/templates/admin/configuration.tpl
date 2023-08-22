@@ -1,11 +1,5 @@
 <div style="width: 700px; margin: 0 auto;">
 </div>
-{if isset($smarty.get.validation)}
-    <div class="conf confirm" style="width: 710px; margin: 0 auto;">
-        {l s='Your Sitemaps were successfully created. Please do not forget to setup the URL' mod='sitemap'} <a href="{$sitemap_store_url|escape:'htmlall':'UTF-8'}{$shop->id|intval}_index_sitemap.xml" target="_blank"><span style="text-decoration: underline;">{$sitemap_store_url|escape:'htmlall':'UTF-8'}{$shop->id|intval}_index_sitemap.xml</a></span> {l s='in your Google Webmaster account.' mod='sitemap'}
-    </div>
-    <br/>
-{/if}
 {if isset($google_maps_error)}
     <div class="error" style="width: 710px; margin: 0 auto;">
         {$google_maps_error|escape:'htmlall':'UTF-8'}<br/>
@@ -23,22 +17,29 @@
         </form>
     </fieldset>
 {else}
-    {if $sitemap_links}
+    {foreach $sitemaps as $sitemap}
+        <br/>
         <fieldset style="width: 700px; margin: 0 auto;">
-            <legend><img src="{$module_dir|escape:'htmlall':'UTF-8'}logo.gif" alt=""/>{l s='Your Sitemaps' mod='sitemap'}</legend>
+            <legend><img src="{$module_dir|escape:'htmlall':'UTF-8'}logo.gif" alt=""/>{l s='Sitemaps for %s' mod='sitemap' sprintf=[$sitemap.shopName]}</legend>
             {l s='Please set up the following Sitemap URL in your Google Webmaster account:' mod='sitemap'}<br/>
-            <a href="{$sitemap_store_url|escape:'htmlall':'UTF-8'}{$shop->id|intval}_index_sitemap.xml" target="_blank"><span style="color: blue;">{$sitemap_store_url|escape:'htmlall':'UTF-8'}{$shop->id|intval}_index_sitemap.xml</span></a><br/><br/>
+            <a href="{$sitemap.indexUrl|escape:'htmlall':'UTF-8'}" target="_blank"><span style="color: blue;">{$sitemap.indexUrl|escape:'htmlall':'UTF-8'}</span></a><br/><br/>
             {l s='This URL is the master Sitemaps file. It refers to the following sub-sitemap files:' mod='sitemap'}
             <div style="max-height: 220px; overflow: auto;">
                 <ul>
-                    {foreach from=$sitemap_links item=sitemap_link}
-                        <li><a target="_blank" style="color: blue;" href="{$sitemap_store_url|escape:'htmlall':'UTF-8'}{$sitemap_link.link|escape:'htmlall':'UTF-8'}">{$sitemap_link.link|escape:'htmlall':'UTF-8'}</a></li>
+                    {foreach $sitemap.links as $sitemapLink}
+                        <li><a target="_blank" style="color: blue;" href="{$sitemapLink|escape:'htmlall':'UTF-8'}">{$sitemapLink|escape:'htmlall':'UTF-8'}</a></li>
                     {/foreach}
                 </ul>
             </div>
-            <p>{l s='Your last update was made on this date:' mod='sitemap'} {$sitemap_last_export|escape:'htmlall':'UTF-8'}</p>
+            <p>{l s='Your last update was made on this date:' mod='sitemap'}
+                {if $sitemap.lastExport}
+                    {$sitemap.lastExport|escape:'htmlall':'UTF-8'}
+                {else}
+                    {l s='Never' mod='sitemap'}
+                {/if}
+            </p>
         </fieldset>
-    {/if}
+    {/foreach}
     <br/>
     {if ($sitemap_customer_limit.max_exec_time < 30 && $sitemap_customer_limit.max_exec_time > 0)}
         <div class="warn" style="width: 700px; margin: 0 auto;">
@@ -93,8 +94,11 @@
         <b style="display: block; margin-top: 5px; margin-left: 3px;">{l s='You have two ways to generate Sitemap:' mod='sitemap'}</b><br/><br/>
         1. <b>{l s='Manually:' mod='sitemap'}</b> {l s='using the form above (as often as needed)' mod='sitemap'}<br/>
         <br/><span style="font-style: italic;">{l s='-or-' mod='sitemap'}</span><br/><br/>
-        2. <b>{l s='Automatically:' mod='sitemap'}</b> {l s='Ask your hosting provider to setup a "Cron task" to load the following URL at the time you would like:' mod='sitemap'}
-        <a href="{$sitemap_cron|escape:'htmlall':'UTF-8'}" target="_blank">{$sitemap_cron|escape:'htmlall':'UTF-8'}</a><br/><br/>
+        2. <b>{l s='Automatically:' mod='sitemap'}</b> {l s='Ask your hosting provider to setup a "Cron task" to load the following URL(s) at the time you would like:' mod='sitemap'}
+        {foreach $sitemaps as $sitemap}
+            <a href="{$sitemap.cronLink|escape:'htmlall':'UTF-8'}" target="_blank">{$sitemap.cronLink|escape:'htmlall':'UTF-8'}</a><br/>
+        {/foreach}
+        <br/>
         {l s='It will automatically generate your XML Sitemaps.' mod='sitemap'}<br/><br/>
     </p>
 {/if}

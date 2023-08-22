@@ -22,6 +22,7 @@
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  *  PrestaShop is an internationally registered trademark & property of PrestaShop SA
  */
+/** @noinspection PhpUnhandledExceptionInspection */
 
 include __DIR__.'/../../config/config.inc.php';
 include __DIR__.'/../../init.php';
@@ -50,5 +51,5 @@ if ($sitemap->active) {
     }
 
     /* Create the Google Sitemap's files */
-    p($sitemap->createSitemap((int) $idShop));
+    $sitemap->createSitemap((int) $idShop);
 }

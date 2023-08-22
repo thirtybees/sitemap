@@ -67,7 +67,7 @@ class Sitemap extends Module
      * Step 2 - Install the Addon and create a database table to store Sitemap files name by shop
      *
      * @return boolean Installation result
-     * @throws HTMLPurifier_Exception
+     *
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      */
@@ -82,7 +82,6 @@ class Sitemap extends Module
                      'SITEMAP_PRIORITY_CMS'          => 0.5,
                      'SITEMAP_FREQUENCY'             => 'weekly',
                      'SITEMAP_CHECK_IMAGE_FILE'      => false,
-                     'SITEMAP_LAST_EXPORT'           => false,
                  ] as $key => $val) {
             if (!Configuration::updateValue($key, $val)) {
                 return false;
@@ -134,7 +133,6 @@ class Sitemap extends Module
                      'SITEMAP_PRIORITY_CMS',
                      'SITEMAP_FREQUENCY',
                      'SITEMAP_CHECK_IMAGE_FILE',
-                     'SITEMAP_LAST_EXPORT',
                  ] as $key) {
             if (!Configuration::deleteByName($key)) {
                 return false;
@@ -212,6 +210,10 @@ class Sitemap extends Module
     {
         ShopUrl::resetMainDomainCache();
 
+        $link = Context::getContext()->link;
+        $shopIds = array_map('intval', Shop::getContextListShopID());
+        sort($shopIds);
+
         /* Store the posted parameters and generate a new Google Sitemap files for the current Shop */
         if (Tools::isSubmit('SubmitGsitemap')) {
             Configuration::updateValue('SITEMAP_FREQUENCY', Tools::getValue('sitemap_frequency'));
@@ -222,28 +224,49 @@ class Sitemap extends Module
                 $meta .= implode(', ', Tools::getValue('sitemap_meta'));
             }
             Configuration::updateValue('SITEMAP_DISABLE_LINKS', $meta);
-            $this->emptySitemap();
-            $this->createSitemap();
+            foreach ($shopIds as $shopId) {
+                $this->emptySitemap($shopId);
+                $this->createSitemap($shopId);
+            }
+            $this->sitemapsGenerated($shopIds);
         } /* if no posted form and the variable [continue] is found in the HTTP request variable keep creating sitemap */
         elseif (Tools::getValue('continue')) {
-            $this->createSitemap();
+            foreach ($shopIds as $shopId) {
+                $this->createSitemap($shopId);
+            }
+            $this->sitemapsGenerated($shopIds);
         }
+
+        $sitemaps = [];
+        foreach ($shopIds as $shopId) {
+            $shop = new Shop($shopId);
+            $links = [];
+            $rows = Db::getInstance()->executeS('SELECT link FROM `'._DB_PREFIX_.'sitemap_sitemap` WHERE id_shop = '.$shopId);
+            foreach ($rows as $row) {
+                $links[] = $link->getBaseLink($shopId) . $row['link'];
+            }
+            $sitemaps[] = [
+                'shopId' => $shopId,
+                'shopName' => $shop->name,
+                'indexUrl'  => $link->getBaseLink($shopId) . $shopId . '_index_sitemap.xml',
+                'links' => $links,
+                'cronLink' => rtrim($link->getBaseLink(), '/').'/modules/sitemap/sitemap-cron.php?token='.substr(Tools::encrypt('sitemap/cron'), 0, 10).'&id_shop='.$shopId,
+                'lastExport' => Configuration::getGlobalValue('SITEMAP_LAST_EXPORT_' . $shopId),
+            ];
+        }
+
 
         $this->context->smarty->assign(
             [
                 'sitemap_form'             => './index.php?tab=AdminModules&configure=sitemap&token='.Tools::getAdminTokenLite('AdminModules').'&tab_module='.$this->tab.'&module_name=sitemap',
-                'sitemap_cron'             => rtrim($this->context->link->getBaseLink(), '/').'/modules/sitemap/sitemap-cron.php?token='.substr(Tools::encrypt('sitemap/cron'), 0, 10).'&id_shop='.$this->context->shop->id,
-                'sitemap_last_export'      => Configuration::get('SITEMAP_LAST_EXPORT'),
                 'sitemap_frequency'        => Configuration::get('SITEMAP_FREQUENCY'),
-                'sitemap_store_url'        => 'http://'.Tools::getShopDomain(false, true).__PS_BASE_URI__,
-                'sitemap_links'            => Db::getInstance()->ExecuteS('SELECT * FROM `'._DB_PREFIX_.'sitemap_sitemap` WHERE id_shop = '.(int) $this->context->shop->id),
                 'store_metas'              => Meta::getMetasByIdLang((int) $this->context->language->id),
                 'sitemap_disable_metas'    => $this->getDisabledMetas(),
                 'sitemap_customer_limit'   => [
                     'max_exec_time' => (int) ini_get('max_execution_time'),
                 ],
+                'sitemaps'                 => $sitemaps,
                 'sitemap_check_image_file' => Configuration::get('SITEMAP_CHECK_IMAGE_FILE'),
-                'shop'                      => $this->context->shop,
             ]
         );
 
@@ -259,14 +282,12 @@ class Sitemap extends Module
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      */
-    public function emptySitemap($idShop = 0)
+    public function emptySitemap($idShop)
     {
         if (!isset($this->context)) {
             $this->context = new Context();
         }
-        if ($idShop != 0) {
-            $this->context->shop = new Shop((int) $idShop);
-        }
+        $this->context->shop = new Shop((int) $idShop);
         $links = Db::getInstance()->ExecuteS('SELECT * FROM `'._DB_PREFIX_.'sitemap_sitemap` WHERE id_shop = '.(int) $this->context->shop->id);
         if ($links) {
             foreach ($links as $link) {
@@ -285,11 +306,12 @@ class Sitemap extends Module
      * @param int $idShop Shop identifier
      *
      * @return bool
+     *
      * @throws HTMLPurifier_Exception
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      */
-    public function createSitemap($idShop = 0)
+    public function createSitemap($idShop)
     {
         if (@fopen($this->normalizeDirectory(_PS_ROOT_DIR_).'/test.txt', 'w') == false) {
             $this->context->smarty->assign('google_maps_error', $this->l('An error occurred while trying to check your file permissions. Please adjust your permissions to allow thirty bees to write a file in your root directory.'));
@@ -299,9 +321,7 @@ class Sitemap extends Module
             @unlink($this->normalizeDirectory(_PS_ROOT_DIR_).'test.txt');
         }
 
-        if ($idShop != 0) {
-            $this->context->shop = new Shop((int) $idShop);
-        }
+        $this->context->shop = new Shop((int) $idShop);
         ShopUrl::resetMainDomainCache();
 
         $type = Tools::getValue('type') ? Tools::getValue('type') : '';
@@ -342,15 +362,10 @@ class Sitemap extends Module
         }
 
         $this->_createIndexSitemap();
-        Configuration::updateValue('SITEMAP_LAST_EXPORT', date('r'));
+        Configuration::updateGlobalValue('SITEMAP_LAST_EXPORT_'.$idShop, date('r'));
 
-        $this->pingGoogle($this->context->shop->id);
-
-        if ($this->cron) {
-            die();
-        }
-        header('location: ./index.php?tab=AdminModules&configure=sitemap&token='.Tools::getAdminTokenLite('AdminModules').'&tab_module='.$this->tab.'&module_name=sitemap&validation');
-        die();
+        $this->pingGoogle($idShop);
+        return true;
     }
 
     /**
@@ -1263,6 +1278,32 @@ class Sitemap extends Module
             return $link['moduleName'];
         }
         return 'unknown-page';
+    }
+
+    /**
+     * @param int[] $shopIds
+     *
+     * @return void
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     */
+    protected function sitemapsGenerated($shopIds)
+    {
+        $context = Context::getContext();
+        /** @var AdminController $controller */
+        $controller = $context->controller;
+        $link = $context->link;
+
+        $cnt = count($shopIds);
+        $controller->confirmations[] = ($cnt > 1)
+            ? sprintf($this->l('Sitemaps for %s stores have been generated'), $cnt)
+            : sprintf($this->l('Sitemap for %s has been generated'), $context->shop->name);
+
+        $controller->setRedirectAfter($link->getAdminLink('AdminModules', true, [
+            'configure' => $this->name,
+            'module_name' => $this->name
+        ]));
     }
 
 }
