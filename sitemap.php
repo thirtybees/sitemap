@@ -790,7 +790,7 @@ class Sitemap extends Module
         foreach ($categoryIds as $categoryId) {
             $id = (int) $categoryId['id_category'];
             $category = new Category($id, (int) $lang['id_lang']);
-            $url = $link->getCategoryLink($category, urlencode($category->link_rewrite), (int) $lang['id_lang']);
+            $url = $link->getCategoryLink($category, $category->link_rewrite, (int) $lang['id_lang']);
 
             $imageFile = _PS_CAT_IMG_DIR_.$id.'.jpg';
             $imageLink = file_exists($imageFile)
@@ -999,7 +999,7 @@ class Sitemap extends Module
 
         foreach ($cmssId as $id) {
             $cms = new CMS($id, $lang['id_lang']);
-            $cms->link_rewrite = urlencode((is_array($cms->link_rewrite) ? $cms->link_rewrite[(int) $lang['id_lang']] : $cms->link_rewrite));
+            $cms->link_rewrite = (is_array($cms->link_rewrite) ? $cms->link_rewrite[(int) $lang['id_lang']] : $cms->link_rewrite);
             $url = $link->getCMSLink($cms, null, null, $lang['id_lang']);
 
             if (!$this->_addLinkToSitemap(
