@@ -359,7 +359,6 @@ class Sitemap extends Module
         $this->_createIndexSitemap();
         Configuration::updateGlobalValue('SITEMAP_LAST_EXPORT_'.$idShop, date('r'));
 
-        $this->pingGoogle($idShop);
         return true;
     }
 
@@ -1057,30 +1056,6 @@ class Sitemap extends Module
         }
 
         return true;
-    }
-
-    /**
-     * Pings google
-     *
-     * @param int $shopId
-     * @throws PrestaShopException
-     */
-    protected function pingGoogle($shopId)
-    {
-        try {
-            $shopId = (int)$shopId;
-            $link = $this->context->link->getBaseLink($shopId) . $shopId.'_index_sitemap.xml';
-            $url = 'https://www.google.com/webmasters/sitemaps/ping?sitemap='.urlencode($link);
-            $guzzle = new GuzzleHttp\Client([
-                'timeout'  => 20,
-                'verify'   => _PS_TOOL_DIR_.'cacert.pem',
-            ]);
-            $guzzle->get($url);
-        } catch (Exception $e) {
-            Logger::addLog("sitemap: Failed to ping google: " . $e);
-        } catch (\GuzzleHttp\Exception\GuzzleException $e) {
-            Logger::addLog("sitemap: Failed to ping google: " . $e);
-        }
     }
 
     /**
