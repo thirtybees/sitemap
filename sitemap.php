@@ -316,14 +316,6 @@ class Sitemap extends Module
      */
     public function createSitemap($idShop)
     {
-        if (@fopen($this->normalizeDirectory(_PS_ROOT_DIR_).'/test.txt', 'w') == false) {
-            $this->context->smarty->assign('google_maps_error', $this->l('An error occurred while trying to check your file permissions. Please adjust your permissions to allow thirty bees to write a file in your root directory.'));
-
-            return false;
-        } else {
-            @unlink($this->normalizeDirectory(_PS_ROOT_DIR_).'test.txt');
-        }
-
         $this->context->shop = new Shop((int) $idShop);
         ShopUrl::resetMainDomainCache();
 

@@ -1,10 +1,5 @@
 <div style="width: 700px; margin: 0 auto;">
 </div>
-{if isset($google_maps_error)}
-    <div class="error" style="width: 710px; margin: 0 auto;">
-        {$google_maps_error|escape:'htmlall':'UTF-8'}<br/>
-    </div>
-{/if}
 {if isset($sitemap_refresh_page)}
     <fieldset style="width: 700px; margin: 0 auto; text-align: center;">
         <legend><img src="{$module_dir|escape:'htmlall':'UTF-8'}logo.gif" alt=""/>{l s='Your Sitemaps' mod='sitemap'}</legend>
