@@ -291,7 +291,10 @@ class Sitemap extends Module
         $links = Db::getInstance()->ExecuteS('SELECT * FROM `'._DB_PREFIX_.'sitemap_sitemap` WHERE id_shop = '.(int) $this->context->shop->id);
         if ($links) {
             foreach ($links as $link) {
-                @unlink($this->normalizeDirectory(_PS_ROOT_DIR_).$link['link']);
+                $filePath = $this->normalizeDirectory(_PS_ROOT_DIR_) . $link['link'];
+                if (file_exists($filePath)) {
+                    unlink($filePath);
+                }
             }
 
             return Db::getInstance()->Execute('DELETE FROM `'._DB_PREFIX_.'sitemap_sitemap` WHERE id_shop = '.(int) $this->context->shop->id);
