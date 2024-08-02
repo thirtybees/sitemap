@@ -53,17 +53,54 @@
             <legend><img src="{$module_dir|escape:'htmlall':'UTF-8'}logo.gif" alt=""/>{l s='Configure your Sitemap' mod='sitemap'}</legend>
             <p>{l s='Several Sitemaps files will be generated depending on how your server is configured and on the number of activated products in your catalog.' mod='sitemap'}<br/></p>
             <div class="margin-form">
-                <label for="sitemap_frequency" style="width: 235px;">{l s='How often do you update your store?' mod='sitemap'}
-                    <select name="sitemap_frequency">
-                        <option{if $sitemap_frequency == 'always'} selected="selected"{/if} value='always'>{l s='always' mod='sitemap'}</option>
-                        <option{if $sitemap_frequency == 'hourly'} selected="selected"{/if} value='hourly'>{l s='hourly' mod='sitemap'}</option>
-                        <option{if $sitemap_frequency == 'daily'} selected="selected"{/if} value='daily'>{l s='daily' mod='sitemap'}</option>
-                        <option{if $sitemap_frequency == 'weekly' || $sitemap_frequency == ''} selected="selected"{/if} value='weekly'>{l s='weekly' mod='sitemap'}</option>
-                        <option{if $sitemap_frequency == 'monthly'} selected="selected"{/if} value='monthly'>{l s='monthly' mod='sitemap'}</option>
-                        <option{if $sitemap_frequency == 'yearly'} selected="selected"{/if} value='yearly'>{l s='yearly' mod='sitemap'}</option>
-                        <option{if $sitemap_frequency == 'never'} selected="selected"{/if} value='never'>{l s='never' mod='sitemap'}</option>
-                    </select></label>
+                <label for="sitemap_frequency">{l s='How often do you update your store?' mod='sitemap'}</label>
+                <select name="sitemap_frequency">
+                    <option{if $sitemap_frequency == 'always'} selected="selected"{/if} value='always'>{l s='always' mod='sitemap'}</option>
+                    <option{if $sitemap_frequency == 'hourly'} selected="selected"{/if} value='hourly'>{l s='hourly' mod='sitemap'}</option>
+                    <option{if $sitemap_frequency == 'daily'} selected="selected"{/if} value='daily'>{l s='daily' mod='sitemap'}</option>
+                    <option{if $sitemap_frequency == 'weekly' || $sitemap_frequency == ''} selected="selected"{/if} value='weekly'>{l s='weekly' mod='sitemap'}</option>
+                    <option{if $sitemap_frequency == 'monthly'} selected="selected"{/if} value='monthly'>{l s='monthly' mod='sitemap'}</option>
+                    <option{if $sitemap_frequency == 'yearly'} selected="selected"{/if} value='yearly'>{l s='yearly' mod='sitemap'}</option>
+                    <option{if $sitemap_frequency == 'never'} selected="selected"{/if} value='never'>{l s='never' mod='sitemap'}</option>
+                </select>
             </div>
+
+            <div class="margin-form">
+                <label for="products_image_type">{l s='Select image type for product images' mod='sitemap'}</label>
+                <select name="products_image_type">
+                    {foreach $imageTypes['products'] as $type}
+                        <option{if $selectedImageTypes['products'] == $type} selected="selected"{/if} value='{$type}'>{$type}</option>
+                    {/foreach}
+                </select>
+            </div>
+
+            <div class="margin-form">
+                <label for="categories_image_type">{l s='Select image type for category images' mod='sitemap'}</label>
+                <select name="categories_image_type">
+                    {foreach $imageTypes['categories'] as $type}
+                        <option{if $selectedImageTypes['categories'] == $type} selected="selected"{/if} value='{$type}'>{$type}</option>
+                    {/foreach}
+                </select>
+            </div>
+
+            <div class="margin-form">
+                <label for="manufacturers_image_type">{l s='Select image type for manufacturer images' mod='sitemap'}</label>
+                <select name="manufacturers_image_type">
+                    {foreach $imageTypes['manufacturers'] as $type}
+                        <option{if $selectedImageTypes['manufacturers'] == $type} selected="selected"{/if} value='{$type}'>{$type}</option>
+                    {/foreach}
+                </select>
+            </div>
+
+            <div class="margin-form">
+                <label for="suppliers_image_type">{l s='Select image type for supplier images' mod='sitemap'}</label>
+                <select name="suppliers_image_type">
+                    {foreach $imageTypes['suppliers'] as $type}
+                        <option{if $selectedImageTypes['suppliers'] == $type} selected="selected"{/if} value='{$type}'>{$type}</option>
+                    {/foreach}
+                </select>
+            </div>
+
             <label for="gsitemap_check_image_file" style="width: 526px;">{l s='Check this box if you wish to check the presence of the image files on the server' mod='sitemap'}
                 <input type="checkbox" name="sitemap_check_image_file" value="1" {if $sitemap_check_image_file}checked{/if}></label>
             <label for="gsitemap_check_all" style="width: 526px;"><span>{l s='check all' mod='sitemap'}</span>

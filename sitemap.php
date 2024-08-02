@@ -214,11 +214,16 @@ class Sitemap extends Module
         $shopIds = array_map('intval', Shop::getContextListShopID());
         sort($shopIds);
 
+        $imageTypes = $this->getAllImageTypes();
+
         /* Store the posted parameters and generate a new Google Sitemap files for the current Shop */
         if (Tools::isSubmit('SubmitGsitemap')) {
             Configuration::updateValue('SITEMAP_FREQUENCY', Tools::getValue('sitemap_frequency'));
             Configuration::updateValue('SITEMAP_INDEX_CHECK', '');
             Configuration::updateValue('SITEMAP_CHECK_IMAGE_FILE', Tools::getValue('sitemap_check_image_file'));
+            foreach ($imageTypes as $class => $_) {
+                Configuration::updateValue('SITEMAP_IMAGE_TYPE_' . strtoupper($class), Tools::getValue($class . '_image_type'));
+            }
             $meta = '';
             if (Tools::getValue('sitemap_meta')) {
                 $meta .= implode(', ', Tools::getValue('sitemap_meta'));
@@ -267,6 +272,8 @@ class Sitemap extends Module
                 ],
                 'sitemaps'                 => $sitemaps,
                 'sitemap_check_image_file' => Configuration::get('SITEMAP_CHECK_IMAGE_FILE'),
+                'imageTypes'               => $imageTypes,
+                'selectedImageTypes'       => $this->getSelectedImageTypes(),
             ]
         );
 
@@ -1140,7 +1147,7 @@ class Sitemap extends Module
                 if (count($types) > 0) {
                     $selectedTypes[$class] = $types[0];
                 } else {
-                    throw new PrestaShopException('No image type exists for class ' . $class);
+                    $selectedTypes[$class] = '';
                 }
             }
         }
