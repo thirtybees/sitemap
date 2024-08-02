@@ -715,8 +715,7 @@ class Sitemap extends Module
             if (is_array($productImages)) {
                 foreach ($productImages as $productImage) {
                     $id = (int)$productImage['id_image'];
-                    $imageFile = _PS_PROD_IMG_DIR_ . Image::getImgFolderStatic($id) . $id . '.jpg';
-                    if (file_exists($imageFile)) {
+                    if ($this->imageExists(_PS_PROD_IMG_DIR_ . Image::getImgFolderStatic($id), $id)) {
                         $imageLink = $link->getImageLink($product->link_rewrite, $id, $this->getImageType('products'));
                         if ($this->validateImageLink($imageLink)) {
                             $title = $productImage['legend'];
@@ -786,8 +785,7 @@ class Sitemap extends Module
             $category = new Category($id, (int) $lang['id_lang']);
             $url = $link->getCategoryLink($category, $category->link_rewrite, (int) $lang['id_lang']);
 
-            $imageFile = _PS_CAT_IMG_DIR_.$id.'.jpg';
-            $imageLink = file_exists($imageFile)
+            $imageLink = $this->imageExists(_PS_CAT_IMG_DIR_, $id)
                 ? $this->getImageLink('categories', $id, $category->link_rewrite)
                 : null;
 
@@ -866,8 +864,7 @@ class Sitemap extends Module
             $manufacturer = new Manufacturer($id, $lang['id_lang']);
             $url = $link->getManufacturerLink($manufacturer, $manufacturer->link_rewrite, $lang['id_lang']);
 
-            $imageFile = _PS_MANU_IMG_DIR_.$id.'.jpg';
-            $imageLink = file_exists($imageFile)
+            $imageLink = $this->imageExists(_PS_MANU_IMG_DIR_, $id)
                 ? $this->getImageLink('manufacturers', $id)
                 : null;
 
@@ -928,8 +925,7 @@ class Sitemap extends Module
             $supplier = new Supplier($id, $lang['id_lang']);
             $url = $link->getSupplierLink($supplier, $supplier->link_rewrite, $lang['id_lang']);
 
-            $imageFile = _PS_SUPP_IMG_DIR_. $id.'.jpg';
-            $imageLink = file_exists($imageFile)
+            $imageLink = $this->imageExists(_PS_SUPP_IMG_DIR_, $id)
                 ? $this->getImageLink('suppliers', $id)
                 : null;
 
@@ -1274,6 +1270,23 @@ class Sitemap extends Module
             'configure' => $this->name,
             'module_name' => $this->name
         ]));
+    }
+
+    /**
+     * @param string $directory
+     * @param string $name
+     *
+     * @return bool
+     *
+     * @throws PrestaShopException
+     */
+    protected function imageExists($directory, $name)
+    {
+        if (method_exists(ImageManager::class, 'getSourceImage')) {
+            return (bool)ImageManager::getSourceImage($directory, $name);
+        }
+        // legacy check functionality
+        return file_exists(ltrim($directory, '/') . '/' . $name . '.jpg');
     }
 
 }
