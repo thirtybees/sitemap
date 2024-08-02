@@ -50,7 +50,7 @@ class Sitemap extends Module
     {
         $this->name = 'sitemap';
         $this->tab = 'seo';
-        $this->version = '4.1.3';
+        $this->version = '4.2.0';
         $this->author = 'thirty bees';
         $this->need_instance = 0;
 
