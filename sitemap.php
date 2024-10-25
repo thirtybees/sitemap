@@ -81,7 +81,6 @@ class Sitemap extends Module
                      'SITEMAP_PRIORITY_SUPPLIER'     => 0.6,
                      'SITEMAP_PRIORITY_CMS'          => 0.5,
                      'SITEMAP_FREQUENCY'             => 'weekly',
-                     'SITEMAP_CHECK_IMAGE_FILE'      => false,
                  ] as $key => $val) {
             if (!Configuration::updateValue($key, $val)) {
                 return false;
@@ -132,7 +131,6 @@ class Sitemap extends Module
                      'SITEMAP_PRIORITY_SUPPLIER',
                      'SITEMAP_PRIORITY_CMS',
                      'SITEMAP_FREQUENCY',
-                     'SITEMAP_CHECK_IMAGE_FILE',
                  ] as $key) {
             if (!Configuration::deleteByName($key)) {
                 return false;
@@ -220,7 +218,6 @@ class Sitemap extends Module
         if (Tools::isSubmit('SubmitGsitemap')) {
             Configuration::updateValue('SITEMAP_FREQUENCY', Tools::getValue('sitemap_frequency'));
             Configuration::updateValue('SITEMAP_INDEX_CHECK', '');
-            Configuration::updateValue('SITEMAP_CHECK_IMAGE_FILE', Tools::getValue('sitemap_check_image_file'));
             foreach ($imageTypes as $class => $_) {
                 Configuration::updateValue('SITEMAP_IMAGE_TYPE_' . strtoupper($class), Tools::getValue($class . '_image_type'));
             }
@@ -271,7 +268,6 @@ class Sitemap extends Module
                     'max_exec_time' => (int) ini_get('max_execution_time'),
                 ],
                 'sitemaps'                 => $sitemaps,
-                'sitemap_check_image_file' => Configuration::get('SITEMAP_CHECK_IMAGE_FILE'),
                 'imageTypes'               => $imageTypes,
                 'selectedImageTypes'       => $this->getSelectedImageTypes(),
             ]
@@ -724,7 +720,7 @@ class Sitemap extends Module
                     $id = (int)$productImage['id_image'];
                     if ($this->imageExists(_PS_PROD_IMG_DIR_ . Image::getImgFolderStatic($id), $id)) {
                         $imageLink = $link->getImageLink($product->link_rewrite, $id, $this->getImageType('products'));
-                        if ($this->validateImageLink($imageLink)) {
+                        if ($imageLink) {
                             $title = $productImage['legend'];
                             if (! $title) {
                                 $title = $product->name;
@@ -797,7 +793,7 @@ class Sitemap extends Module
                 : null;
 
             $imageCategory = [];
-            if ($this->validateImageLink($imageLink)) {
+            if ($imageLink) {
                 $imageCategory = [
                     'title_img' => $category->name,
                     'link'      => $imageLink,
@@ -876,7 +872,7 @@ class Sitemap extends Module
                 : null;
 
             $manufacturerImage = [];
-            if ($this->validateImageLink($imageLink)) {
+            if ($imageLink) {
                 $manufacturerImage = [
                     'title_img' => $manufacturer->name,
                     'caption'   => $manufacturer->short_description,
@@ -937,7 +933,7 @@ class Sitemap extends Module
                 : null;
 
             $supplierImage = [];
-            if ($this->validateImageLink($imageLink)) {
+            if ($imageLink) {
                 $supplierImage = [
                     'title_img' => $supplier->name,
                     'link'      => $imageLink
@@ -1060,40 +1056,6 @@ class Sitemap extends Module
 
         return true;
     }
-
-    /**
-     * Validates that image link is correct. If SITEMAP_CHECK_IMAGE_FILE config option is enabled,
-     * then also validates that the image is accessible
-     *
-     * @param string $imageLink
-     * @return boolean
-     * @throws PrestaShopException
-     */
-    protected function validateImageLink($imageLink)
-    {
-        if (! $imageLink) {
-            return false;
-        }
-
-        if (! Configuration::get('SITEMAP_CHECK_IMAGE_FILE')) {
-            return true;
-        }
-
-        try {
-            $guzzle = new GuzzleHttp\Client([
-                'timeout' => 20,
-                'verify' => _PS_TOOL_DIR_ . 'cacert.pem',
-            ]);
-            $response = $guzzle->head($imageLink);
-            $statusCode = $response->getStatusCode();
-            return $statusCode >= 200 && $statusCode < 300;
-        } catch (Exception $ignored) {
-            return false;
-        } catch (\GuzzleHttp\Exception\GuzzleException $e) {
-            return false;
-        }
-    }
-
 
     /**
      * @param string $class

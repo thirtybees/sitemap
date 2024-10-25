@@ -101,8 +101,6 @@
                 </select>
             </div>
 
-            <label for="gsitemap_check_image_file" style="width: 526px;">{l s='Check this box if you wish to check the presence of the image files on the server' mod='sitemap'}
-                <input type="checkbox" name="sitemap_check_image_file" value="1" {if $sitemap_check_image_file}checked{/if}></label>
             <label for="gsitemap_check_all" style="width: 526px;"><span>{l s='check all' mod='sitemap'}</span>
                 <input type="checkbox" name="sitemap_check_all" value="1" class="check"></label>
             <br class="clear"/>
