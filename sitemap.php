@@ -58,6 +58,8 @@ class Sitemap extends Module
 
         $this->displayName = $this->l('Sitemap');
         $this->description = $this->l('Generate your sitemap file');
+        $this->tb_min_version = '1.4.0';
+        $this->tb_versions_compliancy = '>= 1.4.0';
     }
 
     /**
@@ -662,27 +664,31 @@ class Sitemap extends Module
 
         $metas = Db::getInstance()->ExecuteS($query);
         if (is_array($metas)) {
+            $dispatcher = Dispatcher::getInstance();
+            $langId = (int)$lang['id_lang'];
             foreach ($metas as $meta) {
                 $page = $meta['page'];
-                if (preg_match('#module-([a-z0-9_-]+)-([a-z0-9_]+)$#i', $page, $m)) {
-                    $url = $link->getModuleLink($m[1], $m[2]);
-                } else {
-                    $url = $link->getPageLink($page);
-                }
+                if (! $dispatcher->getRouteRequiredParams($page, $langId)) {
+                    if (preg_match('#module-([a-z0-9_-]+)-([a-z0-9_]+)$#i', $page, $m)) {
+                        $url = $link->getModuleLink($m[1], $m[2]);
+                    } else {
+                        $url = $link->getPageLink($page);
+                    }
 
-                if (!$this->_addLinkToSitemap(
-                    $linkSitemap,
-                    [
-                        'type' => 'meta',
-                        'page' => $page,
-                        'link' => $url
-                    ],
-                    $lang['iso_code'],
-                    $index,
-                    $i,
-                    $meta['id_meta']
-                )) {
-                    return false;
+                    if (!$this->_addLinkToSitemap(
+                        $linkSitemap,
+                        [
+                            'type' => 'meta',
+                            'page' => $page,
+                            'link' => $url
+                        ],
+                        $lang['iso_code'],
+                        $index,
+                        $i,
+                        $meta['id_meta']
+                    )) {
+                        return false;
+                    }
                 }
             }
         }
