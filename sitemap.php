@@ -53,6 +53,7 @@ class Sitemap extends Module
         $this->version = '4.2.1';
         $this->author = 'thirty bees';
         $this->need_instance = 0;
+        $this->bootstrap = true;
 
         parent::__construct();
 
